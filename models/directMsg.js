@@ -7,3 +7,5 @@ const directMsgSchema = new Schema({
     receiver: {type: Schema.Types.ObjectId, ref: User},
     msg: {type: Schema.Types.ObjectId, ref: DirectMsg}
 })
+
+module.exports = mongoose.model('DirectMsg', directMsgSchema)
