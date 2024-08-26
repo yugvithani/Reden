@@ -15,3 +15,5 @@ const msgSchema = new Schema({
     isDirectMsg : {type: Boolean, required: true},
     translatedContent : String,
 })
+
+module.exports = mongoose.model('Msg', msgSchema)

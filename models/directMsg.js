@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
 const User = require('./user')
+const DirectMsg = require('./directMsg')
 const Schema = mongoose.Schema
 
 const directMsgSchema = new Schema({
