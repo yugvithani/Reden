@@ -1,11 +1,11 @@
 const mongoose = require('mongoose')
 const User = require('./user')
-const DirectMsg = require('./directMsg')
+const Msg = require('./msg')
 const Schema = mongoose.Schema
 
 const directMsgSchema = new Schema({
-    receiver: {type: Schema.Types.ObjectId, ref: User},
-    msg: {type: Schema.Types.ObjectId, ref: DirectMsg}
-})
+    receiver: {type: mongoose.Schema.Types.ObjectId, ref: "User"},
+    msg: {type: Schema.Types.ObjectId, ref: "Msg"}
+});
 
 module.exports = mongoose.model('DirectMsg', directMsgSchema)

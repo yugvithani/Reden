@@ -5,15 +5,15 @@ const DirectMsg = require('./directMsg')
 const Schema = mongoose.Schema
 
 const msgSchema = new Schema({
-    contant : {type: String, required: true},
+    content : {type: String, required: true},
     timestamp : {type: Date, default: Date.now},
-    Sender : {type: Schema.Types.ObjectId, ref: User, required: true},
-    group : {type: Schema.Types.ObjectId, ref: Group},
-    directMsg : {type: Schema.Types.ObjectId, ref: DirectMsg},
-    star : {type: Boolean, default: false},
+    sender : {type: mongoose.Schema.Types.ObjectId, ref: "User", required: true},
+    group : {type: mongoose.Schema.Types.ObjectId, ref: "Group"},
+    directMsg : {type: mongoose.Schema.Types.ObjectId, ref: "DirectMsg"},
+    starred : {type: Boolean, default: false},
     type : {type: String, enum: ['msg', 'image'], required: true},
     isDirectMsg : {type: Boolean, required: true},
-    translatedContent : String,
-})
+    translatedContent :{ type:String,default:null},
+});
 
 module.exports = mongoose.model('Msg', msgSchema)

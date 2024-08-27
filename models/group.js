@@ -3,10 +3,10 @@ const User = require('./user')
 const Schema = mongoose.Schema
 //thids is duicwufbgwyfgwy
 const groupSchema = new Schema({
-    participant: [{type: Schema.Types.ObjectId, ref: User}],
-    isPrivate: {type: Boolean, defalut: true},
+    participant: [{type: mongoose.Schema.Types.ObjectId, ref: 'User'}],
+    isPrivate: {type: Boolean, default: true},
     name: {type: String, required: true},
-    description: String
-})
+    description: {type: String, default:""},
+});
 
 module.exports = mongoose.model('Group', groupSchema)
