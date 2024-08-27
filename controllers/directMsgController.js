@@ -1,22 +1,22 @@
-const DirectMessage = require("../models/directMsg");
+const DirectMsg = require("../models/directMsg");
 
-const createDirectMessage = async (req, res) => {
+const createDirectMsg = async (req, res) => {
   try {
-    const directMessage = new DirectMessage(req.body);
-    await directMessage.save();
-    res.status(201).send(directMessage);
+    const directMsg = new DirectMsg(req.body);
+    await directMsg.save();
+    res.status(201).send(directMsg);
   } catch (error) {
     res.status(400).send(error);
   }
 };
 
-const getDirectMessages = async (req, res) => {
+const getDirectMsgs = async (req, res) => {
   try {
-    const directMessages = await DirectMessage.find({ participants: req.params.userId }).populate("messages");
-    res.send(directMessages);
+    const directMsgs = await DirectMsg.find({ receiver: req.params.userId }).populate("msg");
+    res.send(directMsgs);
   } catch (error) {
     res.status(500).send(error);
   }
 };
 
-module.exports = { createDirectMessage, getDirectMessages };
+module.exports = { createDirectMsg, getDirectMsgs };

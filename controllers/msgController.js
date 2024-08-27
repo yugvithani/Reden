@@ -1,22 +1,24 @@
-const Message = require("../models/msg");
+const Msg = require("../models/msg");
 
-const sendMessage = async (req, res) => {
+// send a message 
+const sendMsg = async (req, res) => {
   try {
-    const message = new Message(req.body);
-    await message.save();
-    res.status(201).send(message);
+    const msg = new Msg(req.body);
+    await msg.save();
+    res.status(201).send(msg);
   } catch (error) {
     res.status(400).send(error);
   }
 };
 
-const getMessagesByGroup = async (req, res) => {
+// get messages by group
+const getMsgsByGroup = async (req, res) => {
   try {
-    const messages = await Message.find({ group: req.params.groupId }).populate("sender");
-    res.send(messages);
+    const msgs = await Msg.find({ group: req.params.groupId });
+    res.send(msgs);
   } catch (error) {
     res.status(500).send(error);
   }
 };
 
-module.exports = { sendMessage, getMessagesByGroup};
+module.exports = { sendMsg, getMsgsByGroup};

@@ -13,11 +13,11 @@ const HttpError = require("./models/http-error");
 
 app.use(express.json());
 
-app.use("/api", userRoutes);
-app.use("/api", contactRoutes);
-app.use("/api", msgRoutes);
-app.use("/api", groupRoutes);
-app.use("/api", directMsgRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/contact", contactRoutes);
+app.use("/api/msg", msgRoutes);
+app.use("/api/group", groupRoutes);
+app.use("/api/directMsg", directMsgRoutes);
 
 app.use((req, res, next) => {
     const error = new HttpError("Could not find this route.", 404);
