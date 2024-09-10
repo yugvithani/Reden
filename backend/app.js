@@ -1,13 +1,13 @@
 const express = require('express')
 const mongoose = require('mongoose')
-
+require('dotenv').config()
 
 const app = express()
-const userRoutes = require("./routes/user-routes");
-const contactRoutes = require("./routes/contact-routes");
-const msgRoutes = require("./routes/msg-routes");
-const groupRoutes = require("./routes/group-routes");
-const directMsgRoutes = require("./routes/directMsg-routes");
+const userRoutes = require("./routes/userRoutes");
+const contactRoutes = require("./routes/contactRoutes");
+const msgRoutes = require("./routes/msgRoutes");
+const groupRoutes = require("./routes/groupRoutes");
+const directMsgRoutes = require("./routes/directMsgRoutes");
 
 const HttpError = require("./models/http-error");
 
@@ -33,7 +33,7 @@ app.use((error, req, res, next) => {
 });
 
 mongoose.connect(
-    "mongodb+srv://yugvithani:yugvithani@mern.50tcxbl.mongodb.net/?retryWrites=true&w=majority&appName=mern" 
+    process.env.atlas 
   )
   .then(() => {
     app.listen(3000);

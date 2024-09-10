@@ -28,7 +28,6 @@ const getUserById = async (req, res) => {
     }
   };
   
-  // Update a user by ID
   const updateUserById = async (req, res) => {
     try {
       const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
@@ -39,7 +38,6 @@ const getUserById = async (req, res) => {
     }
   };
   
-  // Delete a user by ID
   const deleteUserById = async (req, res) => {
     try {
       const user = await User.findByIdAndDelete(req.params.id);
