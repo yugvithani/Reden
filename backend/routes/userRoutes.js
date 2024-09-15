@@ -5,6 +5,8 @@ const {
   getUserById,
   updateUserById,
   deleteUserById,
+  createContact,
+  getContactsByUser
 } = require('../controllers/userController');
 
 const router = express.Router();
@@ -23,5 +25,11 @@ router.put('/:id', updateUserById);
 
 // Delete a user by ID
 router.delete('/:id', deleteUserById);
+
+// Create a new contact
+router.get('/contactBetween/:id/:cid', createContact);
+
+// Get all contacts by user ID
+router.get('/:id/contacts', getContactsByUser);
 
 module.exports = router;
