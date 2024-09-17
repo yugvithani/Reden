@@ -116,6 +116,39 @@ const getContactsByUser = async (req, res) => {
   }
 };
 
+const deleteContactByUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const receiverId = req.params.cid;
+
+    const user = await User.findById(userId);
+    const receiver = await User.findById(receiverId);
+    
+    if (!user || !receiver) {
+      return res.status(404).json({ message: 'User or contact user not found' });
+    }
+
+    user.contact = user.contact.filter(contact => !contact.receiver.equals(receiverId));
+
+    receiver.contact = receiver.contact.filter(contact => !contact.receiver.equals(userId));
+
+    await user.save();
+    await receiver.save();
+
+    await Msg.deleteMany({
+      $or: [
+        {sender: userId, receiver: receiverId},
+        {sender: receiverId, receiver: userId}
+      ]
+    });
+
+    res.status(200).json({message: 'Contact deleted successfully'});
+  }
+  catch (error){
+    res.status(400).json("Failed to delete Contact.");
+  }
+}
+
 module.exports = {
   createUser,
   getUsers,
@@ -123,5 +156,6 @@ module.exports = {
   updateUserById,
   deleteUserById,
   createContact,
-  getContactsByUser
+  getContactsByUser,
+  deleteContactByUser
 };

@@ -1,5 +1,6 @@
 const Group = require("../models/group");
 const User = require("../models/user");
+const Msg = require("../models/msg")
 
 const createGroup = async (req, res) => {
   try {
@@ -61,12 +62,45 @@ const joinGroupByGroupCode = async (req, res) => {
 
     group.participant.push(user._id);
     user.group.push(group._id);
-    const a =await group.save();
-    const b = await user.save();
+    await group.save();
+    await user.save();
     res.send(group);
   } catch (error) {
     res.status(500).send(error);
   }
 };
 
-module.exports = { createGroup, getGroups, getGroupById, joinGroupByGroupCode };
+const deleteGroup = async (req, res) => {
+  try{
+    const userId = req.params.uid;
+    const groupId = req.params.gid;
+
+    const user = await User.findById(userId);
+    const group = await Group.findById(groupId);
+
+    const isAdmin = group.admin.equals(user._id);
+    if(isAdmin){
+      Msg.deleteMany({group: group._id});
+      const admin = await User.findById(userId);
+      admin.group.pull(group._id);
+      const participant = group.participant
+      for(const pid of participant){
+        const user = await User.findById(pid);
+        user.group.pull(group._id);
+        await user.save();
+      }
+    }
+    else{
+      return res.status(400).send("Only Admin can delete the Group.");
+    }
+    console.log(0)
+    await Group.deleteOne({_id: groupId});
+    console.log(1)
+    res.status(200).send("Group deleted successfully.")
+  }
+  catch{
+    res.status(400).send("Failed to delete Group.")
+  }
+}
+
+module.exports = { createGroup, getGroups, getGroupById, joinGroupByGroupCode, deleteGroup };
