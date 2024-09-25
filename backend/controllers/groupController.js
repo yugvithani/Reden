@@ -93,9 +93,7 @@ const deleteGroup = async (req, res) => {
     else{
       return res.status(400).send("Only Admin can delete the Group.");
     }
-    console.log(0)
     await Group.deleteOne({_id: groupId});
-    console.log(1)
     res.status(200).send("Group deleted successfully.")
   }
   catch{

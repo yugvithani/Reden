@@ -1,6 +1,7 @@
 const User= require("../models/user");
 const Msg = require("../models/msg");
 const Group = require("../models/group");
+const {deleteGroup} = require("./groupController")
 
 const createUser = async (req, res) => {
   try {
@@ -9,6 +10,10 @@ const createUser = async (req, res) => {
       createdAt : new Date(),
       updatedAt : new Date(),
     });
+    const Exuser = await User.findOne({$or : [{username: req.body.username},{email: req.body.email}]})
+    if(Exuser){
+      return res.status(400).send("User already exist.");
+    }
     await user.save();
     res.status(201).send(user);
   } catch (error) {
@@ -57,8 +62,11 @@ const deleteUserById = async (req, res) => {
 
     const groups = await Group.find({$or: [{admin: userId}, {participant: userId}]});
     for(const group of groups){
-      if(group.admin.equals(userId))
-        await Group.findByIdAndDelete(group._id);
+      if(group.admin.equals(userId)){
+        req.params.uid = req.params.id
+        req.params.gid = group._id
+        await deleteGroup(req, res);
+      }
       else
         await Group.updateOne({_id: group._id}, {$pull: { participant: userId}});
     }
@@ -129,9 +137,7 @@ const deleteContactByUser = async (req, res) => {
     }
 
     user.contact = user.contact.filter(contact => !contact.receiver.equals(receiverId));
-
     receiver.contact = receiver.contact.filter(contact => !contact.receiver.equals(userId));
-
     await user.save();
     await receiver.save();
 
