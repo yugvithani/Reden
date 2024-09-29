@@ -2,26 +2,68 @@ const User= require("../models/user");
 const Msg = require("../models/msg");
 const Group = require("../models/group");
 const {deleteGroup} = require("./groupController")
+const bcrypt = require('bcryptjs');
+const { generateToken } = require('../services/authService');
 
-const createUser = async (req, res) => {
+const signup = async (req, res) => {
   try {
+    // const user = new User({
+    //   ...req.body, 
+    //   createdAt : new Date(),
+    //   updatedAt : new Date(),
+    // });
+    const Exuser = await User.findOne({$or : [{username: req.body.username},{email: req.body.email}]})
+    if(Exuser){
+      return res.status(400).send({ message: 'User already exist.' });
+    }
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+
     const user = new User({
       ...req.body, 
+      password: hashedPassword,
       createdAt : new Date(),
       updatedAt : new Date(),
     });
-    const Exuser = await User.findOne({$or : [{username: req.body.username},{email: req.body.email}]})
-    if(Exuser){
-      return res.status(400).send("User already exist.");
-    }
     await user.save();
-    res.status(201).send(user);
+    res.status(201).send({ message: 'User registered successfully.' });
   } catch (error) {
-    res.status(400).send(error);
+    res.status(500).send(error);
   }
 };
 
-const getUsers = async (_req, res) => {
+const login = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    const user = await User.findOne({ username: username });
+    if (!user) {
+      return res.status(400).send('Invalid username or password.');
+    }
+
+    // Compare password
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(400).send('Invalid username or password.');
+    }
+
+    // Generate JWT token
+    const token = generateToken(user);
+    res.status(200).send({ token, user });
+  } catch (error) {
+    res.status(500).send(error);
+  }
+};
+
+const getCurrentUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password'); // Exclude password
+    res.send(user);
+  } catch (error) {
+    res.status(500).send(error);
+  }
+};
+
+const getUsers = async (req, res) => {
   try {
     const users = await User.find();
     res.send(users);
@@ -156,7 +198,9 @@ const deleteContactByUser = async (req, res) => {
 }
 
 module.exports = {
-  createUser,
+  signup,
+  login,
+  getCurrentUser,
   getUsers,
   getUserById,
   updateUserById,

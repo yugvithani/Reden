@@ -1,5 +1,6 @@
 const express = require('express')
 const mongoose = require('mongoose')
+const cors = require('cors');
 require('dotenv').config()
 
 const app = express()
@@ -9,6 +10,12 @@ const groupRoutes = require("./routes/groupRoutes");
 
 const HttpError = require("./models/http-error");
 
+const corsOptions = {
+  origin: 'http://localhost:5173', // Allow requests from localhost:3000
+  methods: 'GET, POST, PUT, DELETE, OPTIONS', // Specify allowed HTTP methods
+  allowedHeaders: 'Content-Type', // Specify allowed headers
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use("/api/user", userRoutes);

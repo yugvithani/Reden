@@ -8,8 +8,8 @@ const userSchema = new Schema({
     password : {type: String, required: true},
     email : {type: String, required: true, unique: true},
     phoneNo : {type: String, required: true},
-    profilePicture : {type:String,required:null},
-    language : {type:[String],required:true},
+    profilePicture : {type:String,default:null},
+    language : {type:String,required:true},
     bio :{type:String,default:""},
     contact : [{
         receiver: {type: mongoose.Schema.Types.ObjectId, ref: 'User', required:true},

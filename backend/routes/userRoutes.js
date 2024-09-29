@@ -1,6 +1,8 @@
 const express = require('express');
 const {
-  createUser,
+  signup,
+  login,
+  getCurrentUser,
   getUsers,
   getUserById,
   updateUserById,
@@ -9,11 +11,18 @@ const {
   getContactsByUser,
   deleteContactByUser
 } = require('../controllers/userController');
+const authenticate = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
 // Create a new user
-router.post('/', createUser);
+router.post('/signup', signup);
+
+// login
+router.post('/login', login);
+
+// get current user (Protected route)
+router.get('/currentUser', authenticate, getCurrentUser);
 
 // Get all users
 router.get('/', getUsers);
