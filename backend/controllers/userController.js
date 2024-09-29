@@ -7,11 +7,6 @@ const { generateToken } = require('../services/authService');
 
 const signup = async (req, res) => {
   try {
-    // const user = new User({
-    //   ...req.body, 
-    //   createdAt : new Date(),
-    //   updatedAt : new Date(),
-    // });
     const Exuser = await User.findOne({$or : [{username: req.body.username},{email: req.body.email}]})
     if(Exuser){
       return res.status(400).send({ message: 'User already exist.' });
