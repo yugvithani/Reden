@@ -149,15 +149,20 @@ const createContact = async (req, res) => {
     res.status(400).send(error);
   }
 };
-
 const getContactsByUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
-    if (!user) 
-      return res.status(404).send({message: 'User is not exist.'});
-    res.status(201).send(user.contact);
+    // Fetch the user by ID and populate contact details
+    const user = await User.findById(req.params.id).populate('contact.receiver', 'username email'); // Include fields you want to return
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // Return the populated contacts
+    res.status(200).json(user.contact); // Status 200 for successful retrieval
   } catch (error) {
-    res.status(500).send(error);
+    console.error('Error fetching contacts:', error);
+    res.status(500).json({ message: 'Server error', error });
   }
 };
 

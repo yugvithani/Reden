@@ -37,7 +37,7 @@ router.put('/:id', updateUserById);
 router.delete('/:id', deleteUserById);
 
 // Create a new contact
-router.get('/contactBetween/:id/:cid', createContact);
+router.post('/contactBetween/:id/:cid', createContact);
 
 // Get all contacts by user ID
 router.get('/:id/contacts', getContactsByUser);
