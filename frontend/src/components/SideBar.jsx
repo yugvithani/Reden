@@ -1,12 +1,13 @@
-// SideBar.js
 import React, { useState, useEffect } from 'react';
-import ContactList from "./ContactList";
-import SearchBar from "./SearchBar";
+import ContactList from './ContactList';
+import SearchBar from './SearchBar';
 
 const SideBar = ({ onContactClick }) => {
   const [contacts, setContacts] = useState([]); // Store fetched contacts
   const [filteredContacts, setFilteredContacts] = useState([]); // Store filtered contacts
   const [searchTerm, setSearchTerm] = useState('');
+  const [showModal, setShowModal] = useState(false); // Modal visibility state
+  const [newContactUsername, setNewContactUsername] = useState(''); // New contact username
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -16,9 +17,9 @@ const SideBar = ({ onContactClick }) => {
         const response = await fetch(`http://localhost:3000/api/user/${userId}/contacts`, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         });
 
         if (!response.ok) {
@@ -41,30 +42,85 @@ const SideBar = ({ onContactClick }) => {
     setSearchTerm(searchTerm); // Update the search term
 
     // Filter contacts based on the search term
-    const filtered = contacts.filter(contact =>
+    const filtered = contacts.filter((contact) =>
       contact.receiver.username.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredContacts(filtered); // Update the filtered contacts
   };
 
-  return (
-    <div className="w-1/4 bg-gray-900 border-r border-gray-800 p-4 flex flex-col justify-between">
-      <div>
-        {/* Search Bar */}
-        <SearchBar onSearch={handleSearch} />
+  // Toggle modal visibility
+  const toggleModal = () => {
+    setShowModal(!showModal);
+  };
 
-        {/* My Contacts */}
-        <ContactList contacts={filteredContacts} onContactClick={onContactClick} />
-      </div>
-      <div>
-        {/* New Group Button */}
-        <button className="mt-6 w-full flex items-center justify-center bg-cyan-600 text-white py-2 rounded-lg hover:bg-cyan-500 transition duration-300">
-          New Group Chat +
-        </button>
-        <button className="mt-6 w-full flex items-center justify-center bg-cyan-600 text-white py-2 rounded-lg hover:bg-cyan-500 transition duration-300">
-          Create Group Chat +
-        </button>
-      </div>
+  // Handle submit for new contact
+  const handleSubmitNewContact = () => {
+    // Add logic for submitting the new contact (e.g., API call)
+    console.log('Submitting new contact:', newContactUsername);
+    setShowModal(false); // Close the modal after submission
+  };
+
+  return (
+    <div className="w-1/4 bg-gray-900 border-r border-gray-800 p-4 flex flex-col">
+      <div className="mb-4">
+  {/* Search Bar */}
+  <SearchBar onSearch={handleSearch} />
+
+  {/* My Contacts header and Add New Contact Button */}
+  <div className="flex justify-between items-center mt-4">
+    <h2 className="text-xl font-semibold text-gray-100">My Contacts</h2>
+
+    {/* Add New Contact Button */}
+    <button
+      className="bg-cyan-600 text-white px-3 py-1 rounded-full hover:bg-cyan-500 transition duration-300"
+      onClick={toggleModal}
+    >
+      +
+    </button>
+  </div>
+</div>
+
+
+
+      {/* My Contacts */}
+      <ContactList contacts={filteredContacts} onContactClick={onContactClick} />
+
+      {/* Modal for adding a new contact */}
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-1/3">
+            <h2 className="text-xl text-white mb-4">Add New Contact</h2>
+
+            {/* Username input */}
+            <input
+              type="text"
+              placeholder="Enter username"
+              value={newContactUsername}
+              onChange={(e) => setNewContactUsername(e.target.value)}
+              className="w-full p-2 mb-4 bg-gray-700 text-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            />
+
+            {/* Buttons */}
+            <div className="flex justify-end space-x-2">
+              {/* Close Button */}
+              <button
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-500"
+                onClick={toggleModal}
+              >
+                Close
+              </button>
+
+              {/* Submit Button */}
+              <button
+                className="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-500"
+                onClick={handleSubmitNewContact}
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

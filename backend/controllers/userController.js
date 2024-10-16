@@ -169,7 +169,7 @@ const createContact = async (req, res) => {
 const getContactsByUser = async (req, res) => {
   try {
     // Fetch the user by ID and populate contact details
-    const user = await User.findById(req.params.id).populate('contact.receiver', 'username email'); // Include fields you want to return
+    const user = await User.findById(req.params.id).populate('contact.receiver', 'username email profilePicture'); // Include fields you want to return
 
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });

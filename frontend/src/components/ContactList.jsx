@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 const ContactList = ({ contacts, onContactClick }) => {
   return (
     <>
-      <h2 className="text-lg font-semibold mb-3">My Contacts</h2>
       <ul className="space-y-2 max-h-[585px] overflow-y-auto pr-3">
         {contacts.length > 0 ? (
           contacts.map((contact) => (
