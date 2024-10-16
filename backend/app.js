@@ -24,29 +24,28 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json());
-const io = new Server(http);
+const io = new Server(http, {
+  cors: {
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+    credentials: true, // Allow credentials if necessary
+  }
+});
 
 // Handle socket connections
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
-
-  // Handle user joining a room with their user ID
   socket.on('joinRoom', ({ userId }) => {
-    socket.join(userId);  // User joins their own room based on userId
-    console.log(`User with ID ${userId} joined their room`);
+    socket.join(userId.toString());
+    console.log(`User ${userId} joined room ${userId}`);
   });
 
-  // Listen for message sending
   socket.on('sendMessage', (messageData) => {
-    // Save message to the database (your existing logic)
-    
-    // Emit message to the recipient's room (userId)
-    io.to(messageData.receiver).emit('receiveMessage', messageData);  // Send message to the recipient
-  });
-
-  // Handle disconnecting
-  socket.on('disconnect', () => {
-    console.log('User disconnected', socket.id);
+    console.log('Sending message:', messageData);
+    io.to(messageData.receiver.toString()).emit('receiveMessage', messageData);
+    // Only emit to sender if it's not the same as receiver
+    if (messageData.sender !== messageData.receiver) {
+      io.to(messageData.sender.toString()).emit('receiveMessage', messageData);
+    }
   });
 });
 
@@ -76,7 +75,7 @@ mongoose.connect(
     process.env.atlas 
   )
   .then(() => {
-    app.listen(3000);
+    http.listen(3000);
     console.log("Mongo is connect.")
   })
   .catch((err) => {

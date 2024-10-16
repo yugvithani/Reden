@@ -1,66 +1,84 @@
 import React, { useEffect, useState, useRef } from 'react';
 import io from 'socket.io-client';
-import axios from 'axios'; // For API requests
+import axios from 'axios';
 
-const socket = io('http://localhost:3000'); // Update with your backend URL
+const socket = io('http://localhost:3000');
 
 const ChatScreen = ({ receiverName, receiverId }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [senderId, setSenderId] = useState(localStorage.getItem('userId')); // Fetch sender ID from local storage
-  const [showDropdown, setShowDropdown] = useState(false); // To control profile dropdown visibility
-  const [userInfo, setUserInfo] = useState(null); // Store user's profile information
-  const dropdownRef = useRef(null); // Reference to dropdown for closing it when clicked outside
+  const [senderId, setSenderId] = useState(localStorage.getItem('userId'));
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
+  const dropdownRef = useRef(null);
 
-  // Fetch messages between the sender and receiver when the component mounts
   useEffect(() => {
-  const userId = localStorage.getItem('userId'); // Fetch senderId from localStorage
+    const userId = localStorage.getItem('userId');
 
-  if (userId && receiverId) {  // Ensure both senderId and receiverId are available
-    setSenderId(userId);
+    if (userId && receiverId) {
+      setSenderId(userId);
 
-    // User joins their room on connection
-    // socket.emit('joinRoom', { userId });
+      socket.emit('joinRoom', { userId });
+      socket.emit('joinRoom', { userId: receiverId });
 
-    // console.log(`User ${userId} has joined their room.`);
+      const fetchMessages = async () => {
+        try {
+          const response1 = await axios.get(`http://localhost:3000/api/msg/directMsgBetween/${userId}/${receiverId}`);
+          const response2 = await axios.get(`http://localhost:3000/api/msg/directMsgBetween/${receiverId}/${userId}`);
+          const response = response1.data.concat(response2.data);
+          setMessages(response);
+        } catch (error) {
+          console.error('Error fetching messages:', error);
+        }
+      };
 
-    // Fetch previous messages between the sender and receiver
-    const fetchMessages = async () => {
-      try {
-        const response = await axios.get(`http://localhost:3000/api/msg/directMsgBetween/${userId}/${receiverId}`);
-        setMessages(response.data); // Set the fetched messages
-      } catch (error) {
-        console.error('Error fetching messages:', error);
-      }
+      fetchMessages();
+    }
+
+    const messageHandler = (messageData) => {
+      console.log('Received message:', messageData);
+      setMessages((prevMessages) => {
+        // Check if the message already exists to prevent duplicates
+        if (!prevMessages.some(msg => msg._id === messageData._id)) {
+          return [...prevMessages, messageData];
+        }
+        return prevMessages;
+      });
     };
 
-    fetchMessages(); // Fetch messages only after both sender and receiver IDs are available
-
-    // Listen for incoming messages
-    socket.on('receiveMessage', (messageData) => {
-      console.log('Received message:', messageData);
-      setMessages((prevMessages) => [...prevMessages, messageData]); // Append received message to the list
-    });
-  }
-
-  return () => {
-    socket.off('receiveMessage');  // Clean up the listener when the component unmounts
-    // socket.emit('leaveRoom', { userId });  // Optional: Leave the room when the component unmounts
-  };
-}, [receiverId]);  // Ensure this useEffect runs when receiverId changes
-
-
-  useEffect(() => {
-    // Listen for incoming messages via Socket.IO
-    socket.on('receiveMessage', (messageData) => {
-      console.log('Received message:', messageData);
-      setMessages((prevMessages) => [...prevMessages, messageData]); // Append received message to the list
-    });
+    socket.on('receiveMessage', messageHandler);
 
     return () => {
-      socket.off('receiveMessage'); // Clean up the listener on component unmount
+      socket.off('receiveMessage', messageHandler);
     };
-  }, []);
+  }, [receiverId]);
+
+  const handleSendMessage = async () => {
+    if (newMessage.trim()) {
+      const messageData = {
+        content: newMessage,
+        sender: senderId,
+        receiver: receiverId,
+        isDirectMsg: true,
+        type: 'msg',
+        timestamp: Date.now()
+      };
+
+      try {
+        const response = await axios.post('http://localhost:3000/api/msg/', messageData);
+        
+        if (response.status === 201) {
+          console.log('Message saved:', response.data);
+          socket.emit('sendMessage', response.data);
+          setNewMessage('');
+        } else {
+          console.error('Failed to save the message');
+        }
+      } catch (error) {
+        console.error('Error saving the message:', error);
+      }
+    }
+  };
 
   // Handle outside click for dropdown
   useEffect(() => {
@@ -75,41 +93,6 @@ const ChatScreen = ({ receiverName, receiverId }) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
-  const handleSendMessage = async () => {
-    if (newMessage.trim()) {
-      const messageData = {
-        content: newMessage,
-        sender: senderId,
-        receiver: receiverId,
-        isDirectMsg: true,
-        type: 'msg', // Assuming type is 'msg' for text
-      };
-  
-      try {
-        // Save message to the database via API
-        const response = await axios.post('http://localhost:3000/api/msg/', messageData);
-        
-        if (response.status === 201) {
-          console.log('Message saved:', response.data);
-  
-          // Emit the message to the server via Socket.IO
-          socket.emit('sendMessage', messageData); 
-  
-          // Update local messages immediately
-          setMessages((prevMessages) => [...prevMessages, messageData]);
-  
-          // Clear the input field
-          setNewMessage('');
-        } else {
-          console.error('Failed to save the message');
-        }
-      } catch (error) {
-        console.error('Error saving the message:', error);
-      }
-    }
-  };
-  
 
   const handleLogout = () => {
     localStorage.removeItem('token'); // Remove the token
@@ -200,19 +183,26 @@ const ChatScreen = ({ receiverName, receiverId }) => {
       {/* Chat Messages */}
       <div className="flex-1 p-4 overflow-y-auto bg-gray-800">
         <div className="flex flex-col space-y-4">
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`flex ${msg.sender === senderId ? 'justify-end' : 'justify-start'} items-start space-x-2`}
-            >
+          {/* Sort messages by timestamp */}
+          {messages
+            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)) // Sort by timestamp
+            .map((msg, index) => (
               <div
-                className={`p-3 rounded-lg max-w-xs text-sm ${msg.sender === senderId ? 'bg-cyan-600 text-gray-900' : 'bg-gray-700 text-gray-200'
-                  }`}
+                key={index}
+                className={`flex ${msg.sender === senderId ? 'justify-end' : 'justify-start'} items-start space-x-2`}
               >
-                <p>{msg.content}</p>
+                <div
+                  className={`p-3 rounded-lg max-w-xs text-sm ${msg.sender === senderId ? 'bg-cyan-600 text-gray-900' : 'bg-gray-700 text-gray-200'
+                    }`}
+                >
+                  <p>{msg.content}</p>
+                  {/* Timestamp */}
+                  <span className="flex text-xs text-gray-400 mt-1 justify-end">
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       </div>
 
