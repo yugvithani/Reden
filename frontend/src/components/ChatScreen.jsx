@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import io from 'socket.io-client';
+import axios from 'axios'; // For API requests
 
 const socket = io('http://localhost:3000'); // Update with your backend URL
 
@@ -7,13 +8,10 @@ const ChatScreen = ({ receiverName, receiverId }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [senderId, setSenderId] = useState(localStorage.getItem('userId')); // Fetch sender ID from local storage
-  // if (!receiverId) {
-  //   return (
-  //     <div className="flex-1 flex flex-col bg-gray-900 p-4">
-  //       <h2 className="text-lg text-gray-500">Select a contact to start chatting</h2>
-  //     </div>
-  //   );
-  // }
+  const [showDropdown, setShowDropdown] = useState(false); // To control profile dropdown visibility
+  const [userInfo, setUserInfo] = useState(null); // Store user's profile information
+  const dropdownRef = useRef(null); // Reference to dropdown for closing it when clicked outside
+
   useEffect(() => {
     // Listen for incoming messages
     socket.on('receiveMessage', (messageData) => {
@@ -23,6 +21,20 @@ const ChatScreen = ({ receiverName, receiverId }) => {
 
     return () => {
       socket.off('receiveMessage'); // Clean up the listener on component unmount
+    };
+  }, []);
+
+  // Handle outside click for dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
@@ -42,6 +54,30 @@ const ChatScreen = ({ receiverName, receiverId }) => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token'); // Remove the token
+    localStorage.removeItem('userId'); // Remove the userId
+    window.location.href = '/login'; // Redirect to login page
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      const userId = localStorage.getItem('userId'); // Get the current user ID
+      const response = await axios.get(`http://localhost:3000/api/user/${userId}`); // Fetch user info
+      setUserInfo(response.data); // Set the user's profile info in state
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
+
+  // Toggle dropdown and fetch user profile when opened
+  const handleProfileClick = () => {
+    setShowDropdown(!showDropdown);
+    if (!userInfo) {
+      fetchUserProfile(); // Fetch profile only once when the dropdown is opened
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col bg-gray-900">
       {/* Chat Header */}
@@ -54,17 +90,69 @@ const ChatScreen = ({ receiverName, receiverId }) => {
           />
           <h2 className="text-xl font-semibold">{receiverName}</h2>
         </div>
-        <button className="text-gray-300 hover:text-white transition duration-300">
-          👤
-        </button>
+
+        {/* Profile Dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            className="text-gray-300 hover:text-white transition duration-300"
+            onClick={handleProfileClick} // On click, fetch and show profile
+          >
+            👤
+          </button>
+
+          {/* Dropdown Menu */}
+          {showDropdown && (
+            <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg">
+              {userInfo ? (
+                <div>
+                  <div className="px-4 py-2 text-gray-700">
+                    <p className="font-semibold">My Profile</p>
+                    <img
+                      src={userInfo.profilePicture || 'https://via.placeholder.com/150'} // Default if no profile picture
+                      alt="Profile"
+                      className="w-16 h-16 rounded-full mx-auto my-2"
+                    />
+                    <p><strong>Username:</strong> {userInfo.username}</p>
+                    <p><strong>Email:</strong> {userInfo.email}</p>
+                    <p><strong>Phone:</strong> {userInfo.phoneNo}</p>
+                    <p><strong>Language:</strong> {userInfo.language}</p>
+                    <p><strong>Bio:</strong> {userInfo.bio || 'No bio available'}</p>
+                  </div>
+                  <div className="border-t border-gray-200"></div>
+                  <button
+                    className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                    onClick={() => alert('Edit profile functionality coming soon!')}
+                  >
+                    Edit Profile
+                  </button>
+                  <button
+                    className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <div className="p-4 text-gray-500">Loading profile...</div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Chat Messages */}
       <div className="flex-1 p-4 overflow-y-auto bg-gray-800">
         <div className="flex flex-col space-y-4">
           {messages.map((msg, index) => (
-            <div key={index} className={`flex ${msg.sender === senderId ? 'justify-end' : 'justify-start'} items-start space-x-2`}>
-              <div className={`p-3 rounded-lg max-w-xs text-sm ${msg.sender === senderId ? 'bg-cyan-600 text-gray-900' : 'bg-gray-700 text-gray-200'}`}>
+            <div
+              key={index}
+              className={`flex ${msg.sender === senderId ? 'justify-end' : 'justify-start'} items-start space-x-2`}
+            >
+              <div
+                className={`p-3 rounded-lg max-w-xs text-sm ${
+                  msg.sender === senderId ? 'bg-cyan-600 text-gray-900' : 'bg-gray-700 text-gray-200'
+                }`}
+              >
                 <p>{msg.content}</p>
               </div>
             </div>

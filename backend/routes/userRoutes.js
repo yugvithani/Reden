@@ -6,6 +6,7 @@ const {
   getUsers,
   getUserById,
   updateUserById,
+  updateProfileById,
   deleteUserById,
   createContact,
   getContactsByUser,
@@ -33,6 +34,8 @@ router.get('/:id', getUserById);
 // Update a user by ID
 router.put('/:id', updateUserById);
 
+//Update Method for User Profile
+router.put('/:id/profile', updateProfileById);
 // Delete a user by ID
 router.delete('/:id', deleteUserById);
 

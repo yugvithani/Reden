@@ -88,7 +88,20 @@ const updateUserById = async (req, res) => {
     res.status(400).send(error);
   }
 };
+const updateProfileById = async (req,res)=>{
+  const { username, email, phoneNo, profilePicture, language, bio } = req.body;
 
+  try {
+      const updatedUser = await User.findByIdAndUpdate(
+          req.params.id,
+          { username, email, phoneNo, profilePicture, language, bio },
+          { new: true }
+      );
+      res.status(200).json(updatedUser);
+  } catch (error) {
+      res.status(400).json({ message: 'Error updating profile', error });
+  }
+}
 const deleteUserById = async (req, res) => {
   try {
     const userId = req.params.id;
@@ -204,6 +217,7 @@ module.exports = {
   getUsers,
   getUserById,
   updateUserById,
+  updateProfileById,
   deleteUserById,
   createContact,
   getContactsByUser,
