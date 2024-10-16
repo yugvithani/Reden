@@ -12,11 +12,49 @@ const ChatScreen = ({ receiverName, receiverId }) => {
   const [userInfo, setUserInfo] = useState(null); // Store user's profile information
   const dropdownRef = useRef(null); // Reference to dropdown for closing it when clicked outside
 
+  // Fetch messages between the sender and receiver when the component mounts
   useEffect(() => {
+  const userId = localStorage.getItem('userId'); // Fetch senderId from localStorage
+
+  if (userId && receiverId) {  // Ensure both senderId and receiverId are available
+    setSenderId(userId);
+
+    // User joins their room on connection
+    // socket.emit('joinRoom', { userId });
+
+    // console.log(`User ${userId} has joined their room.`);
+
+    // Fetch previous messages between the sender and receiver
+    const fetchMessages = async () => {
+      try {
+        const response = await axios.get(`http://localhost:3000/api/msg/directMsgBetween/${userId}/${receiverId}`);
+        setMessages(response.data); // Set the fetched messages
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+      }
+    };
+
+    fetchMessages(); // Fetch messages only after both sender and receiver IDs are available
+
     // Listen for incoming messages
     socket.on('receiveMessage', (messageData) => {
       console.log('Received message:', messageData);
-      setMessages((prevMessages) => [...prevMessages, messageData]);
+      setMessages((prevMessages) => [...prevMessages, messageData]); // Append received message to the list
+    });
+  }
+
+  return () => {
+    socket.off('receiveMessage');  // Clean up the listener when the component unmounts
+    // socket.emit('leaveRoom', { userId });  // Optional: Leave the room when the component unmounts
+  };
+}, [receiverId]);  // Ensure this useEffect runs when receiverId changes
+
+
+  useEffect(() => {
+    // Listen for incoming messages via Socket.IO
+    socket.on('receiveMessage', (messageData) => {
+      console.log('Received message:', messageData);
+      setMessages((prevMessages) => [...prevMessages, messageData]); // Append received message to the list
     });
 
     return () => {
@@ -38,7 +76,7 @@ const ChatScreen = ({ receiverName, receiverId }) => {
     };
   }, []);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (newMessage.trim()) {
       const messageData = {
         content: newMessage,
@@ -47,12 +85,31 @@ const ChatScreen = ({ receiverName, receiverId }) => {
         isDirectMsg: true,
         type: 'msg', // Assuming type is 'msg' for text
       };
-      console.log('Sending message:', messageData);
-      socket.emit('sendMessage', messageData); // Emit the message to the server
-      setMessages((prevMessages) => [...prevMessages, messageData]); // Update local messages immediately
-      setNewMessage(''); // Clear the input field
+  
+      try {
+        // Save message to the database via API
+        const response = await axios.post('http://localhost:3000/api/msg/', messageData);
+        
+        if (response.status === 201) {
+          console.log('Message saved:', response.data);
+  
+          // Emit the message to the server via Socket.IO
+          socket.emit('sendMessage', messageData); 
+  
+          // Update local messages immediately
+          setMessages((prevMessages) => [...prevMessages, messageData]);
+  
+          // Clear the input field
+          setNewMessage('');
+        } else {
+          console.error('Failed to save the message');
+        }
+      } catch (error) {
+        console.error('Error saving the message:', error);
+      }
     }
   };
+  
 
   const handleLogout = () => {
     localStorage.removeItem('token'); // Remove the token
@@ -108,7 +165,7 @@ const ChatScreen = ({ receiverName, receiverId }) => {
                   <div className="px-4 py-2 text-gray-700">
                     <p className="font-semibold">My Profile</p>
                     <img
-                      src={userInfo.profilePicture || 'https://via.placeholder.com/150'} // Default if no profile picture
+                      src={userInfo.profilePicture ? `http://localhost:3000${userInfo.profilePicture}` : 'https://via.placeholder.com/150'} // Using full URL to access the image
                       alt="Profile"
                       className="w-16 h-16 rounded-full mx-auto my-2"
                     />
@@ -149,9 +206,8 @@ const ChatScreen = ({ receiverName, receiverId }) => {
               className={`flex ${msg.sender === senderId ? 'justify-end' : 'justify-start'} items-start space-x-2`}
             >
               <div
-                className={`p-3 rounded-lg max-w-xs text-sm ${
-                  msg.sender === senderId ? 'bg-cyan-600 text-gray-900' : 'bg-gray-700 text-gray-200'
-                }`}
+                className={`p-3 rounded-lg max-w-xs text-sm ${msg.sender === senderId ? 'bg-cyan-600 text-gray-900' : 'bg-gray-700 text-gray-200'
+                  }`}
               >
                 <p>{msg.content}</p>
               </div>

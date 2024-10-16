@@ -1,33 +1,54 @@
 import { useState } from 'react';
 import { signup } from '../services/api';
 
-const SignupForm = ({onSignupSuccess}) => {
+const SignupForm = ({ onSignupSuccess }) => {
   const [formData, setFormData] = useState({
     username: '',
     password: '',
-    confirmPassword: '', // extra
+    confirmPassword: '',
     email: '',
     phoneNo: '',
-    profilePicture: '',
+    profilePicture: null,
     language: '',
     bio: '',
   });
-  
-  const [errors, setErrors] = useState({}); 
+
+  const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value, files } = e.target;
+    if (name === 'profilePicture') {
+      if (files[0]) {
+        const file = files[0];
+        const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        if (!validTypes.includes(file.type)) {
+          setErrors({ ...errors, profilePicture: 'Invalid file type. Only JPEG, PNG, and GIF are allowed.' });
+          return;
+        }
+        if (file.size > 2 * 1024 * 1024) { // 2 MB limit
+          setErrors({ ...errors, profilePicture: 'File size must be less than 2MB.' });
+          return;
+        }
+        setErrors({ ...errors, profilePicture: null }); // Clear error if valid
+        setFormData({
+          ...formData,
+          profilePicture: file,
+        });
+      }
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value,
+      });
+    }
   };
 
   const validateForm = () => {
     const newErrors = {};
 
-    const emailExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // [^\s@] -> str but no ' ' & '@'. ^ -> start of string
-    if(!emailExp.test(formData.email)){
-      newErrors.email = "Email format is invalid"
+    const emailExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailExp.test(formData.email)) {
+      newErrors.email = "Email format is invalid";
     }
 
     if (formData.password.length < 8) {
@@ -45,42 +66,72 @@ const SignupForm = ({onSignupSuccess}) => {
     if (formData.phoneNo.length !== 10) {
       newErrors.phoneNo = "Phone number must be 10 digits long";
     }
-    
+
     return newErrors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    //validate form data
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
 
-    // Proceed with API request mean signup is call by API
+    // Create FormData to handle file upload
+    const formDataToSend = new FormData();
+    formDataToSend.append('username', formData.username);
+    formDataToSend.append('email', formData.email);
+    formDataToSend.append('phoneNo', formData.phoneNo);
+    formDataToSend.append('password', formData.password);
+    formDataToSend.append('language', formData.language);
+    formDataToSend.append('bio', formData.bio);
+    if (formData.profilePicture) {
+      formDataToSend.append('profilePicture', formData.profilePicture);
+    }
+
     try {
-      const { confirmPassword, ...signupData } = formData;
-      const res = await signup(signupData);
+      const res = await signup(formDataToSend);
       setErrors({});
 
-      if(res == 400){ // signup is not allowed with same username or email
-        setErrors({signup: "User already exist."});
+      if (res.status === 400) {
+        setErrors({ signup: "User already exists." });
         return;
       }
       onSignupSuccess();
       console.log(res);
     } catch (error) {
       console.error(error);
+      setErrors({ signup: "An error occurred during signup." });
     }
   };
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4 w-full max-w-md">
+      <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4 w-full max-w-md" encType="multipart/form-data">
         <h2 className="text-2xl mb-6 text-center font-semibold">Sign Up</h2>
-        
+
+        {/* Profile Picture Field */}
+        <div className="mb-4">
+          <label className="block text-sm font-bold mb-2" htmlFor="profilePicture">Profile Picture</label>
+          <input
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight"
+            id="profilePicture"
+            name="profilePicture"
+            type="file"
+            onChange={handleChange}
+          />
+          {errors.profilePicture && <p className="text-red-500 text-xs italic">{errors.profilePicture}</p>}
+          {formData.profilePicture && (
+            <img
+              src={URL.createObjectURL(formData.profilePicture)}
+              alt="Profile Preview"
+              className="mt-2 w-20 h-20 object-cover rounded"
+            />
+          )}
+        </div>
+
         {/* Username Field */}
         <div className="mb-4">
           <label className="block text-sm font-bold mb-2" htmlFor="username">Username</label>
@@ -112,20 +163,16 @@ const SignupForm = ({onSignupSuccess}) => {
           {errors.email && <p className="text-red-500 text-xs italic">{errors.email}</p>}
         </div>
 
-        {/* phoneNo Field */}
+        {/* Phone Number Field */}
         <div className="mb-4">
           <label className="block text-sm font-bold mb-2" htmlFor="phoneNo">Phone Number</label>
           <input
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight
-                  focus:outline-none focus:shadow-outline 
-                  [&::-webkit-outer-spin-button]:appearance-none 
-                  [&::-webkit-inner-spin-button]:appearance-none 
-                  [-moz-appearance:textfield] "
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight"
             id="phoneNo"
             name="phoneNo"
             type="number"
             placeholder='Enter phone number'
-            inputMode="numeric" // restrict to numeric input
+            inputMode="numeric"
             value={formData.phoneNo}
             onChange={handleChange}
             required

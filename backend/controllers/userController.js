@@ -7,18 +7,22 @@ const { generateToken } = require('../services/authService');
 
 const signup = async (req, res) => {
   try {
-    const Exuser = await User.findOne({$or : [{username: req.body.username},{email: req.body.email}]})
-    if(Exuser){
+    const Exuser = await User.findOne({ $or: [{ username: req.body.username }, { email: req.body.email }] });
+    if (Exuser) {
       return res.status(400).send({ message: 'User already exist.' });
     }
+    
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
     const user = new User({
-      ...req.body, 
+      ...req.body,
       password: hashedPassword,
-      createdAt : new Date(),
-      updatedAt : new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      profilePicture: req.file ?`/uploads/${req.file.filename}` : null // Save the path to the uploaded file
     });
+    console.log('Profile picture path:', req.file ? req.file.path : 'No file uploaded');
+
     await user.save();
     res.status(201).send({ message: 'User registered successfully.' });
   } catch (error) {

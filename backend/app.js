@@ -3,6 +3,8 @@ const mongoose = require('mongoose')
 const cors = require('cors');
 const { Server } = require('socket.io'); // Import Socket.IO
 require('dotenv').config()
+const path = require('path');
+const Message = require('./models/msg');
 
 const app = express()
 
@@ -19,8 +21,38 @@ const corsOptions = {
   methods: 'GET, POST, PUT, DELETE, OPTIONS', // Specify allowed HTTP methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Specify allowed headers
 };
+
 app.use(cors(corsOptions));
 app.use(express.json());
+const io = new Server(http);
+
+// Handle socket connections
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+
+  // Handle user joining a room with their user ID
+  socket.on('joinRoom', ({ userId }) => {
+    socket.join(userId);  // User joins their own room based on userId
+    console.log(`User with ID ${userId} joined their room`);
+  });
+
+  // Listen for message sending
+  socket.on('sendMessage', (messageData) => {
+    // Save message to the database (your existing logic)
+    
+    // Emit message to the recipient's room (userId)
+    io.to(messageData.receiver).emit('receiveMessage', messageData);  // Send message to the recipient
+  });
+
+  // Handle disconnecting
+  socket.on('disconnect', () => {
+    console.log('User disconnected', socket.id);
+  });
+});
+
+
+// Serve static files from the 'uploads' directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use("/api/user", userRoutes);
 app.use("/api/msg", msgRoutes);
@@ -39,22 +71,6 @@ app.use((error, req, res, next) => {
     res.json({ message: error.message || "An unknown error occurred!" });
 });
 
-const io = new Server(http);
-
-// Handle socket connections
-io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
-  
-  // Handle incoming messages
-  socket.on('sendMessage', (messageData) => {
-    console.log('Message received:', messageData);
-    io.emit('receiveMessage', messageData); // Broadcast to all clients
-  });
-
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
-  });
-});
 
 mongoose.connect(
     process.env.atlas 

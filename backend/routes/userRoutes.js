@@ -1,4 +1,9 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
+
+// Configure Multer for file storage
+
 const {
   signup,
   login,
@@ -12,12 +17,28 @@ const {
   getContactsByUser,
   deleteContactByUser
 } = require('../controllers/userController');
+
+
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, '../uploads/')); // Use path.join and __dirname
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname)); // File naming
+  }
+});
+
+const upload = multer({ storage: storage });
+
 const authenticate = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
 // Create a new user
-router.post('/signup', signup);
+
+router.post('/signup', upload.single('profilePicture'), signup); // Add `upload.single('profilePicture')` middleware
+
 
 // login
 router.post('/login', login);
