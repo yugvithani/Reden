@@ -121,7 +121,7 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture }) => {
     return (
         <div className="flex-1 flex flex-col bg-gray-900">
             {/* Chat Header */}
-            <div className="flex justify-between items-center p-4 bg-black border-b border-gray-800">
+            <div className="flex justify-between items-center p-4 bg-gray-900 border-b border-gray-800">
                 <div className="flex items-center space-x-2">
                     {receiverName ?
                         <img
@@ -202,7 +202,7 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture }) => {
                                         className={`flex ${msg.sender === senderId ? 'justify-end' : 'justify-start'} items-start space-x-2`}
                                     >
                                         <div
-                                            className={`p-3 rounded-lg max-w-xs text-sm ${msg.sender === senderId ? 'bg-cyan-600 text-gray-900' : 'bg-gray-700 text-gray-200'
+                                            className={`p-3 rounded-lg max-w-xs text-sm ${msg.sender === senderId ? 'bg-cyan-700 text-gray-200' : 'bg-gray-700 text-gray-200'
                                                 }`}
                                         >
                                             <p>{msg.content}</p>
@@ -217,7 +217,7 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture }) => {
                     </div>
 
                     {/* Message Input and Send Button */}
-                    <div className="p-4 bg-black border-t border-gray-800 flex items-center">
+                    <div className="p-4 bg-gray-800 border-t border-gray-800 flex items-center">
                         <input
                             type="text"
                             placeholder="Enter a Message..."
@@ -226,7 +226,7 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture }) => {
                             className="flex-grow p-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         />
                         <button
-                            className="ml-2 bg-cyan-600 p-2 rounded-lg hover:bg-cyan-500 transition duration-300"
+                            className="ml-2 bg-gray-800 p-2 rounded-lg hover:bg-cyan-700 transition duration-300"
                             onClick={handleSendMessage}
                         >
                             ➤

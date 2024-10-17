@@ -6,10 +6,12 @@ import { io } from 'socket.io-client';
 const SideBar = ({ onContactClick }) => {
   const [contacts, setContacts] = useState([]); // Store fetched contacts
   const [filteredContacts, setFilteredContacts] = useState([]); // Store filtered contacts
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(''); // Search term state
   const [showModal, setShowModal] = useState(false); // Modal visibility state
   const [newContactUsername, setNewContactUsername] = useState(''); // New contact username
+  const [selectedContactId, setSelectedContactId] = useState(null); // Track the selected contact
 
+  // Fetch contacts and initialize socket connection
   useEffect(() => {
     fetchContacts();
 
@@ -18,8 +20,9 @@ const SideBar = ({ onContactClick }) => {
 
     // Listen for real-time updates of new contacts
     const userId = localStorage.getItem('userId');
-    if(userId)
-      socket.emit('joinRoom', {userId}); // Join the socket room
+    if (userId) {
+      socket.emit('joinRoom', { userId }); // Join the socket room
+    }
 
     socket.on('new-contact', () => {
       fetchContacts(); // Update contacts when a new contact is added in real-time
@@ -30,6 +33,7 @@ const SideBar = ({ onContactClick }) => {
     };
   }, []);
 
+  // Function to fetch contacts
   const fetchContacts = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -114,7 +118,7 @@ const SideBar = ({ onContactClick }) => {
       if (createContactResponse.ok) {
         console.log('Contact added successfully');
 
-        fetchContacts(); // Assuming fetchContacts is a function that updates the contacts in the SideBar
+        fetchContacts(); // Update contacts
         setNewContactUsername('');
         setShowModal(false); // Close the modal after submission
       } else {
@@ -124,6 +128,12 @@ const SideBar = ({ onContactClick }) => {
     } catch (error) {
       console.error('Error submitting new contact:', error);
     }
+  };
+
+  // Update the selected contact when a contact is clicked
+  const handleContactClick = (contact) => {
+    setSelectedContactId(contact.receiver._id); // Set the selected contact
+    onContactClick(contact); // Call the parent callback
   };
 
   return (
@@ -138,7 +148,7 @@ const SideBar = ({ onContactClick }) => {
 
           {/* Add New Contact Button */}
           <button
-            className="bg-cyan-600 text-white px-3 py-1 rounded-full hover:bg-cyan-500 transition duration-300"
+            className="text-2xl text-white px-3 py-1"
             onClick={toggleModal}
           >
             +
@@ -147,7 +157,11 @@ const SideBar = ({ onContactClick }) => {
       </div>
 
       {/* My Contacts */}
-      <ContactList contacts={filteredContacts} onContactClick={onContactClick} />
+      <ContactList
+        contacts={filteredContacts}
+        onContactClick={handleContactClick}
+        selectedContactId={selectedContactId} // Pass the selected contact ID
+      />
 
       {/* Modal for adding a new contact */}
       {showModal && (
