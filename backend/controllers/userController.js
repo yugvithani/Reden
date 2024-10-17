@@ -1,9 +1,12 @@
-const User= require("../models/user");
+const User = require("../models/user");
 const Msg = require("../models/msg");
 const Group = require("../models/group");
-const {deleteGroup} = require("./groupController")
+const { deleteGroup } = require("./groupController")
 const bcrypt = require('bcryptjs');
 const { generateToken } = require('../services/authService');
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
 
 const signup = async (req, res) => {
   try {
@@ -11,7 +14,7 @@ const signup = async (req, res) => {
     if (Exuser) {
       return res.status(400).send({ message: 'User already exist.' });
     }
-    
+
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
     const user = new User({
@@ -19,7 +22,7 @@ const signup = async (req, res) => {
       password: hashedPassword,
       createdAt: new Date(),
       updatedAt: new Date(),
-      profilePicture: req.file ?`/uploads/${req.file.filename}` : null // Save the path to the uploaded file
+      profilePicture: req.file ? `/uploads/${req.file.filename}` : null // Save the path to the uploaded file
     });
     console.log('Profile picture path:', req.file ? req.file.path : 'No file uploaded');
 
@@ -93,27 +96,59 @@ const getUserByUsername = async (req, res) => {
 
 const updateUserById = async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
-    if (!user) return res.status(404).send();
-    user.set({ updatedAt: new Date() });
+    console.log('Request body:', req.body);
+    console.log('Request file:', req.file);
+
+    const userId = req.params.id;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const { phoneNo, language, bio } = req.body;
+
+    if (!phoneNo || !language) {
+      return res.status(400).json({ message: 'Phone number and language are required.' });
+    }
+
+    // Check if a new profile picture has been uploaded
+    if (req.file) {
+      // If there's a new profile picture, delete the old one
+      if (user.profilePicture) {
+        const oldImagePath = path.join(__dirname, '../uploads', user.profilePicture.split('/').pop());
+        fs.unlink(oldImagePath, (err) => {
+          if (err) console.error('Error deleting old image:', err);
+        });
+      }
+
+      // Update the user's profile picture path
+      user.profilePicture = `/uploads/${req.file.filename}`;
+    }
+
+    // Update user fields
+    user.phoneNo = phoneNo;
+    user.language = language;
+    user.bio = bio;
+    user.updatedAt = new Date();
+
     await user.save();
-    res.send(user);
+    res.json(user);
   } catch (error) {
-    res.status(400).send(error);
+    console.error('Error updating user:', error);
+    res.status(400).json({ message: 'Error updating user', error: error.message });
   }
 };
-const updateProfileById = async (req,res)=>{
+
+const updateProfileById = async (req, res) => {
   const { username, email, phoneNo, profilePicture, language, bio } = req.body;
 
   try {
-      const updatedUser = await User.findByIdAndUpdate(
-          req.params.id,
-          { username, email, phoneNo, profilePicture, language, bio },
-          { new: true }
-      );
-      res.status(200).json(updatedUser);
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { username, email, phoneNo, profilePicture, language, bio },
+      { new: true }
+    );
+    res.status(200).json(updatedUser);
   } catch (error) {
-      res.status(400).json({ message: 'Error updating profile', error });
+    res.status(400).json({ message: 'Error updating profile', error });
   }
 }
 const deleteUserById = async (req, res) => {
@@ -121,18 +156,18 @@ const deleteUserById = async (req, res) => {
     const userId = req.params.id;
     const user = await User.findById(userId);
     if (!user) return res.status(404).send();
-    
-    await Msg.deleteMany({$or: [{sender : userId},{receiver : userId}]});
 
-    const groups = await Group.find({$or: [{admin: userId}, {participant: userId}]});
-    for(const group of groups){
-      if(group.admin.equals(userId)){
+    await Msg.deleteMany({ $or: [{ sender: userId }, { receiver: userId }] });
+
+    const groups = await Group.find({ $or: [{ admin: userId }, { participant: userId }] });
+    for (const group of groups) {
+      if (group.admin.equals(userId)) {
         req.params.uid = req.params.id
         req.params.gid = group._id
         await deleteGroup(req, res);
       }
       else
-        await Group.updateOne({_id: group._id}, {$pull: { participant: userId}});
+        await Group.updateOne({ _id: group._id }, { $pull: { participant: userId } });
     }
 
     await User.findByIdAndDelete(userId);
@@ -158,12 +193,12 @@ const createContact = async (req, res) => {
     }
 
     const contact = {
-      receiver : contactId, 
-      lastSeen : new Date(),
+      receiver: contactId,
+      lastSeen: new Date(),
     };
     const contactForUser = {
-      receiver : req.params.id, 
-      lastSeen : new Date(),
+      receiver: req.params.id,
+      lastSeen: new Date(),
     };
 
     user.contact.push(contact);
@@ -176,7 +211,7 @@ const createContact = async (req, res) => {
     io.to(user._id.toString()).emit('new-contact', { contact: contactForUser });
     io.to(contactUser._id.toString()).emit('new-contact', { contact });
 
-    res.status(201).json({message: 'Contact added successfully'});
+    res.status(201).json({ message: 'Contact added successfully' });
   } catch (error) {
     res.status(400).send(error);
   }
@@ -205,7 +240,7 @@ const deleteContactByUser = async (req, res) => {
 
     const user = await User.findById(userId);
     const receiver = await User.findById(receiverId);
-    
+
     if (!user || !receiver) {
       return res.status(404).json({ message: 'User or contact user not found' });
     }
@@ -217,14 +252,14 @@ const deleteContactByUser = async (req, res) => {
 
     await Msg.deleteMany({
       $or: [
-        {sender: userId, receiver: receiverId},
-        {sender: receiverId, receiver: userId}
+        { sender: userId, receiver: receiverId },
+        { sender: receiverId, receiver: userId }
       ]
     });
 
-    res.status(200).json({message: 'Contact deleted successfully'});
+    res.status(200).json({ message: 'Contact deleted successfully' });
   }
-  catch (error){
+  catch (error) {
     res.status(400).json("Failed to delete Contact.");
   }
 }

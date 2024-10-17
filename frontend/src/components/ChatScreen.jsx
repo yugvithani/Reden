@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import io from 'socket.io-client';
 import axios from 'axios';
+import UserProfile from './UserProfile'; // Import the new UserProfile component
 
 const socket = io('http://localhost:3000');
 
@@ -8,9 +9,6 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture }) => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [senderId, setSenderId] = useState(localStorage.getItem('userId'));
-    const [showDropdown, setShowDropdown] = useState(false);
-    const [userInfo, setUserInfo] = useState(null);
-    const dropdownRef = useRef(null);
 
     useEffect(() => {
         const userId = localStorage.getItem('userId');
@@ -80,42 +78,10 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture }) => {
         }
     };
 
-    // Handle outside click for dropdown
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setShowDropdown(false);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
-
     const handleLogout = () => {
         localStorage.removeItem('token'); // Remove the token
         localStorage.removeItem('userId'); // Remove the userId
         window.location.href = '/login'; // Redirect to login page
-    };
-
-    const fetchUserProfile = async () => {
-        try {
-            const userId = localStorage.getItem('userId'); // Get the current user ID
-            const response = await axios.get(`http://localhost:3000/api/user/${userId}`); // Fetch user info
-            setUserInfo(response.data); // Set the user's profile info in state
-        } catch (error) {
-            console.error('Error fetching user profile:', error);
-        }
-    };
-
-    // Toggle dropdown and fetch user profile when opened
-    const handleProfileClick = () => {
-        setShowDropdown(!showDropdown);
-        if (!userInfo) {
-            fetchUserProfile(); // Fetch profile only once when the dropdown is opened
-        }
     };
 
     return (
@@ -123,79 +89,32 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture }) => {
             {/* Chat Header */}
             <div className="flex justify-between items-center p-4 bg-gray-900 border-b border-gray-800">
                 <div className="flex items-center space-x-2">
-                    {receiverName ?
+                    {receiverName && (
                         <img
                             src={receiverProfilePicture}
                             alt="receiver"
                             className="w-10 h-10 rounded-full"
                         />
-                        :
-                        <></>
-                    }
+                    )}
                     <h2 className="text-xl font-semibold">{receiverName}</h2>
                 </div>
-
-                {/* Profile Dropdown */}
-                <div className="relative" ref={dropdownRef}>
-                    <button
-                        className="text-gray-300 hover:text-white transition duration-300"
-                        onClick={handleProfileClick} // On click, fetch and show profile
-                    >
-                        👤
-                    </button>
-
-                    {/* Dropdown Menu */}
-                    {showDropdown && (
-                        <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg">
-                            {userInfo ? (
-                                <div>
-                                    <div className="px-4 py-2 text-gray-700">
-                                        <p className="font-semibold">My Profile</p>
-                                        <img
-                                            src={userInfo.profilePicture ? `http://localhost:3000${userInfo.profilePicture}` : 'https://via.placeholder.com/150'} // Using full URL to access the image
-                                            alt="Profile"
-                                            className="w-16 h-16 rounded-full mx-auto my-2"
-                                        />
-                                        <p><strong>Username:</strong> {userInfo.username}</p>
-                                        <p><strong>Email:</strong> {userInfo.email}</p>
-                                        <p><strong>Phone:</strong> {userInfo.phoneNo}</p>
-                                        <p><strong>Language:</strong> {userInfo.language}</p>
-                                        <p><strong>Bio:</strong> {userInfo.bio || 'No bio available'}</p>
-                                    </div>
-                                    <div className="border-t border-gray-200"></div>
-                                    <button
-                                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                                        onClick={() => alert('Edit profile functionality coming soon!')}
-                                    >
-                                        Edit Profile
-                                    </button>
-                                    <button
-                                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                                        onClick={handleLogout}
-                                    >
-                                        Logout
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="p-4 text-gray-500">Loading profile...</div>
-                            )}
-                        </div>
-                    )}
-                </div>
+                
+                {/* User Profile */}
+                <UserProfile handleLogout={handleLogout} />
             </div>
-            {!receiverId ?
-                <div className='text-center'>
+
+            {!receiverId ? (
+                <div className="text-center">
                     <h1 className="text-3xl text-center text-white mt-20">Select a contact to start chatting</h1>
                 </div>
-                :
+            ) : (
                 <>
-
                     {/* Chat Messages */}
                     <div className="flex-1 p-4 overflow-y-auto bg-gray-800">
                         <div className="flex flex-col space-y-4">
                             {/* Sort messages by timestamp */}
                             {messages
-                                .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)) // Sort by timestamp
+                                .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
                                 .map((msg, index) => (
                                     <div
                                         key={index}
@@ -206,7 +125,6 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture }) => {
                                                 }`}
                                         >
                                             <p>{msg.content}</p>
-                                            {/* Timestamp */}
                                             <span className="flex text-xs text-gray-400 mt-1 justify-end">
                                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
@@ -233,8 +151,7 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture }) => {
                         </button>
                     </div>
                 </>
-            }
-
+            )}
         </div>
     );
 };

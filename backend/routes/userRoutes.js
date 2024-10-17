@@ -50,7 +50,7 @@ router.get('/:id', getUserById);
 router.get('/getUserByUsername/:username', getUserByUsername);
 
 // Update a user by ID
-router.put('/:id', updateUserById);
+router.put('/:id', upload.single('profilePicture'), updateUserById);
 
 // Update Method for User Profile
 router.put('/:id/profile', updateProfileById);
