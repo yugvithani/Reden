@@ -120,71 +120,75 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture }) => {
 
     return (
         <div className="flex-1 flex flex-col bg-gray-900">
+            {/* Chat Header */}
+            <div className="flex justify-between items-center p-4 bg-black border-b border-gray-800">
+                <div className="flex items-center space-x-2">
+                    {receiverName ?
+                        <img
+                            src={receiverProfilePicture}
+                            alt="receiver"
+                            className="w-10 h-10 rounded-full"
+                        />
+                        :
+                        <></>
+                    }
+                    <h2 className="text-xl font-semibold">{receiverName}</h2>
+                </div>
+
+                {/* Profile Dropdown */}
+                <div className="relative" ref={dropdownRef}>
+                    <button
+                        className="text-gray-300 hover:text-white transition duration-300"
+                        onClick={handleProfileClick} // On click, fetch and show profile
+                    >
+                        👤
+                    </button>
+
+                    {/* Dropdown Menu */}
+                    {showDropdown && (
+                        <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg">
+                            {userInfo ? (
+                                <div>
+                                    <div className="px-4 py-2 text-gray-700">
+                                        <p className="font-semibold">My Profile</p>
+                                        <img
+                                            src={userInfo.profilePicture ? `http://localhost:3000${userInfo.profilePicture}` : 'https://via.placeholder.com/150'} // Using full URL to access the image
+                                            alt="Profile"
+                                            className="w-16 h-16 rounded-full mx-auto my-2"
+                                        />
+                                        <p><strong>Username:</strong> {userInfo.username}</p>
+                                        <p><strong>Email:</strong> {userInfo.email}</p>
+                                        <p><strong>Phone:</strong> {userInfo.phoneNo}</p>
+                                        <p><strong>Language:</strong> {userInfo.language}</p>
+                                        <p><strong>Bio:</strong> {userInfo.bio || 'No bio available'}</p>
+                                    </div>
+                                    <div className="border-t border-gray-200"></div>
+                                    <button
+                                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                                        onClick={() => alert('Edit profile functionality coming soon!')}
+                                    >
+                                        Edit Profile
+                                    </button>
+                                    <button
+                                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                                        onClick={handleLogout}
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="p-4 text-gray-500">Loading profile...</div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
             {!receiverId ?
                 <div className='text-center'>
                     <h1 className="text-3xl text-center text-white mt-20">Select a contact to start chatting</h1>
                 </div>
                 :
                 <>
-                    {/* Chat Header */}
-                    <div className="flex justify-between items-center p-4 bg-black border-b border-gray-800">
-                        <div className="flex items-center space-x-2">
-                            <img
-                                src={receiverProfilePicture}
-                                alt="receiver"
-                                className="w-10 h-10 rounded-full"
-                            />
-                            <h2 className="text-xl font-semibold">{receiverName}</h2>
-                        </div>
-
-                        {/* Profile Dropdown */}
-                        <div className="relative" ref={dropdownRef}>
-                            <button
-                                className="text-gray-300 hover:text-white transition duration-300"
-                                onClick={handleProfileClick} // On click, fetch and show profile
-                            >
-                                👤
-                            </button>
-
-                            {/* Dropdown Menu */}
-                            {showDropdown && (
-                                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg">
-                                    {userInfo ? (
-                                        <div>
-                                            <div className="px-4 py-2 text-gray-700">
-                                                <p className="font-semibold">My Profile</p>
-                                                <img
-                                                    src={userInfo.profilePicture ? `http://localhost:3000${userInfo.profilePicture}` : 'https://via.placeholder.com/150'} // Using full URL to access the image
-                                                    alt="Profile"
-                                                    className="w-16 h-16 rounded-full mx-auto my-2"
-                                                />
-                                                <p><strong>Username:</strong> {userInfo.username}</p>
-                                                <p><strong>Email:</strong> {userInfo.email}</p>
-                                                <p><strong>Phone:</strong> {userInfo.phoneNo}</p>
-                                                <p><strong>Language:</strong> {userInfo.language}</p>
-                                                <p><strong>Bio:</strong> {userInfo.bio || 'No bio available'}</p>
-                                            </div>
-                                            <div className="border-t border-gray-200"></div>
-                                            <button
-                                                className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                                                onClick={() => alert('Edit profile functionality coming soon!')}
-                                            >
-                                                Edit Profile
-                                            </button>
-                                            <button
-                                                className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                                                onClick={handleLogout}
-                                            >
-                                                Logout
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="p-4 text-gray-500">Loading profile...</div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
 
                     {/* Chat Messages */}
                     <div className="flex-1 p-4 overflow-y-auto bg-gray-800">

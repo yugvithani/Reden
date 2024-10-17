@@ -24,7 +24,7 @@
     // Define the onContactClick function
     const onContactClick = (contact) => {
       setSelectedContact(contact); // Set the selected contact
-      console.log(selectedContact);
+      console.log(contact);
     };
 
     return (
@@ -33,7 +33,7 @@
         <SideBar onContactClick={onContactClick} />
 
         {/* Chat Window */}
-        <ChatScreen receiverName={selectedContact ? selectedContact.receiver.username : 'Select a contact'} receiverId={selectedContact ? selectedContact.receiver._id : null} receiverProfilePicture={selectedContact ? `http://localhost:3000${selectedContact.receiver.profilePicture}` : 'https://via.placeholder.com/40'} />
+        <ChatScreen receiverName={selectedContact ? selectedContact.receiver.username : ''} receiverId={selectedContact ? selectedContact.receiver._id : null} receiverProfilePicture={selectedContact ? `http://localhost:3000${selectedContact.receiver.profilePicture}` : 'https://via.placeholder.com/40'} />
       </div>
     );
   };

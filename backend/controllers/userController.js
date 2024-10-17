@@ -81,6 +81,16 @@ const getUserById = async (req, res) => {
   }
 };
 
+const getUserByUsername = async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
 const updateUserById = async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
@@ -161,6 +171,11 @@ const createContact = async (req, res) => {
     await user.save();
     await contactUser.save();
 
+    // Emit socket events to notify both users of the new contact
+    const io = req.app.get('socketio'); // Get socket.io instance
+    io.to(user._id.toString()).emit('new-contact', { contact: contactForUser });
+    io.to(contactUser._id.toString()).emit('new-contact', { contact });
+
     res.status(201).json({message: 'Contact added successfully'});
   } catch (error) {
     res.status(400).send(error);
@@ -220,6 +235,7 @@ module.exports = {
   getCurrentUser,
   getUsers,
   getUserById,
+  getUserByUsername,
   updateUserById,
   updateProfileById,
   deleteUserById,

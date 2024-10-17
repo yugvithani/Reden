@@ -2,14 +2,13 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 
-// Configure Multer for file storage
-
 const {
   signup,
   login,
   getCurrentUser,
   getUsers,
   getUserById,
+  getUserByUsername,
   updateUserById,
   updateProfileById,
   deleteUserById,
@@ -17,8 +16,6 @@ const {
   getContactsByUser,
   deleteContactByUser
 } = require('../controllers/userController');
-
-
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -30,15 +27,12 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage: storage });
-
 const authenticate = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
 // Create a new user
-
 router.post('/signup', upload.single('profilePicture'), signup); // Add `upload.single('profilePicture')` middleware
-
 
 // login
 router.post('/login', login);
@@ -52,16 +46,20 @@ router.get('/', getUsers);
 // Get a single user by ID
 router.get('/:id', getUserById);
 
+// Get user by username
+router.get('/getUserByUsername/:username', getUserByUsername);
+
 // Update a user by ID
 router.put('/:id', updateUserById);
 
-//Update Method for User Profile
+// Update Method for User Profile
 router.put('/:id/profile', updateProfileById);
+
 // Delete a user by ID
 router.delete('/:id', deleteUserById);
 
 // Create a new contact
-router.post('/contactBetween/:id/:cid', createContact);
+router.get('/contactBetween/:id/:cid', createContact);
 
 // Get all contacts by user ID
 router.get('/:id/contacts', getContactsByUser);
