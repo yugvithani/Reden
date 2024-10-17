@@ -15,12 +15,6 @@
       }
     }, [user, navigate]);
 
-    const handleLogout = () => {
-      localStorage.removeItem('token'); 
-      localStorage.removeItem('userId'); // Also remove userId if necessary
-      navigate('/login');
-    };
-
     // Define the onContactClick function
     const onContactClick = (contact) => {
       setSelectedContact(contact); // Set the selected contact

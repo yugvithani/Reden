@@ -7,6 +7,7 @@ const UserProfile = ({ handleLogout }) => {
     const [showEditModal, setShowEditModal] = useState(false);
     const [editData, setEditData] = useState({});
     const dropdownRef = useRef(null);
+    const [selectedFile, setSelectedFile] = useState(null); // To store the selected file
 
     // Fetch user profile data
     const fetchUserProfile = async () => {
@@ -72,9 +73,10 @@ const UserProfile = ({ handleLogout }) => {
     const handleProfilePicChange = (e) => {
         const file = e.target.files[0];
         if (file) {
+            setSelectedFile(file); // Set the selected file to the state
             setEditData((prevData) => ({
                 ...prevData,
-                profilePicture: URL.createObjectURL(file),
+                profilePicture: URL.createObjectURL(file), // For preview before saving
             }));
         }
     };
@@ -82,36 +84,29 @@ const UserProfile = ({ handleLogout }) => {
     // Submit the edit form
     const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Submitting data:', editData);
-    
+
         try {
             const userId = localStorage.getItem('userId');
-    
+
             // Prepare form data for file upload
             const formData = new FormData();
             formData.append('phoneNo', editData.phoneNo);
             formData.append('language', editData.language);
             formData.append('bio', editData.bio);
-    
-            if (editData.profilePicture) {
-                formData.append('profilePicture', editData.profilePicture);
+
+            if (selectedFile) {
+                formData.append('profilePicture', selectedFile); // Send the selected file to the backend
             }
-    
-            // Log the FormData (for debugging)
-            for (let [key, value] of formData.entries()) {
-                console.log(key, value);
-            }
-    
+            
             const response = await axios.put(`http://localhost:3000/api/user/${userId}`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
-    
+
             console.log('Update response:', response.data);
-    
             setShowEditModal(false);
-            fetchUserProfile(); // Refresh user profile
+            fetchUserProfile(); // Refresh user profile after submission
         } catch (error) {
             console.error('Error updating profile:', error);
             if (error.response) {
@@ -119,7 +114,6 @@ const UserProfile = ({ handleLogout }) => {
             }
         }
     };
-    
 
     return (
         <div className="relative" ref={dropdownRef}>
@@ -174,7 +168,7 @@ const UserProfile = ({ handleLogout }) => {
                     <div className="bg-gray-900 rounded-lg p-6 w-96">
                         <h2 className="text-xl font-semibold mb-4">Edit Profile</h2>
                         <form onSubmit={handleSubmit}>
-                            {/* <div className="mb-4">
+                            <div className="mb-4">
                                 <label className="block mb-2">Profile Picture</label>
                                 <input
                                     type="file"
@@ -189,7 +183,7 @@ const UserProfile = ({ handleLogout }) => {
                                         className="mt-2 w-16 h-16 rounded-full"
                                     />
                                 )}
-                            </div> */}
+                            </div>
                             <div className="mb-4">
                                 <label className="block mb-2">Phone No</label>
                                 <input

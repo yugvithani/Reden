@@ -6,7 +6,6 @@ const bcrypt = require('bcryptjs');
 const { generateToken } = require('../services/authService');
 const fs = require('fs');
 const path = require('path');
-const multer = require('multer');
 
 const signup = async (req, res) => {
   try {
@@ -96,44 +95,42 @@ const getUserByUsername = async (req, res) => {
 
 const updateUserById = async (req, res) => {
   try {
-    console.log('Request body:', req.body);
-    console.log('Request file:', req.file);
-
     const userId = req.params.id;
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
     const { phoneNo, language, bio } = req.body;
 
-    if (!phoneNo || !language) {
-      return res.status(400).json({ message: 'Phone number and language are required.' });
+    // Fetch the current user data
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found' });
     }
 
-    // Check if a new profile picture has been uploaded
+    const updatedData = {
+      phoneNo,
+      language,
+      bio,
+    };
+
+    // Handle profile picture if provided
     if (req.file) {
-      // If there's a new profile picture, delete the old one
-      if (user.profilePicture) {
-        const oldImagePath = path.join(__dirname, '../uploads', user.profilePicture.split('/').pop());
-        fs.unlink(oldImagePath, (err) => {
-          if (err) console.error('Error deleting old image:', err);
-        });
+      // Remove old profile picture if it exists
+      if (currentUser.profilePicture) {
+        const oldPicturePath = path.join(__dirname, '..', currentUser.profilePicture);
+        if (fs.existsSync(oldPicturePath)) {
+          fs.unlinkSync(oldPicturePath);
+        }
       }
 
-      // Update the user's profile picture path
-      user.profilePicture = `/uploads/${req.file.filename}`;
+      // Set new profile picture path
+      updatedData.profilePicture = `/uploads/${req.file.filename}`;
     }
 
-    // Update user fields
-    user.phoneNo = phoneNo;
-    user.language = language;
-    user.bio = bio;
-    user.updatedAt = new Date();
-
-    await user.save();
+    // Update user in MongoDB
+    const user = await User.findByIdAndUpdate(userId, updatedData, { new: true });
+    
     res.json(user);
   } catch (error) {
-    console.error('Error updating user:', error);
-    res.status(400).json({ message: 'Error updating user', error: error.message });
+    console.error('Error updating user profile:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
