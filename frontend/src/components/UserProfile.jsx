@@ -6,8 +6,12 @@ const UserProfile = ({ handleLogout }) => {
     const [userInfo, setUserInfo] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editData, setEditData] = useState({});
+    const [showGroupModal, setShowGroupModal] = useState(false);
+    const [groupData, setGroupData] = useState({ name: '', description: '' });
     const dropdownRef = useRef(null);
     const [selectedFile, setSelectedFile] = useState(null); // To store the selected file
+    const [availableContacts, setAvailableContacts] = useState([]); // Contacts to show in dropdown
+    const [selectedParticipants, setSelectedParticipants] = useState([]); // Selected participants
 
     // Fetch user profile data
     const fetchUserProfile = async () => {
@@ -15,6 +19,10 @@ const UserProfile = ({ handleLogout }) => {
             const userId = localStorage.getItem('userId'); // Get the current user ID
             const response = await axios.get(`http://localhost:3000/api/user/${userId}`); // Fetch user info
             setUserInfo(response.data); // Set the user's profile info in state
+
+            const contRes = await axios.get(`http://localhost:3000/api/user/${userId}/contacts`);
+            setAvailableContacts(contRes.data.map(contact => contact.receiver)); // Assuming response.data is an array of contacts
+            console.log(contRes.data.map(contact => contact.receiver))
             setEditData({
                 phoneNo: response.data.phoneNo,
                 language: response.data.language,
@@ -49,6 +57,47 @@ const UserProfile = ({ handleLogout }) => {
         };
     }, []);
 
+    const handleCreateGroupClick = () => {
+        setGroupData({ name: '', description: '' }); // Reset group data
+        setShowGroupModal(true);
+    };
+
+    // Handle group input changes
+    const handleGroupChange = (e) => {
+        const { name, value } = e.target;
+        setGroupData((prevData) => ({
+            ...prevData,
+            [name]: value,
+        }));
+    };
+
+    // Submit the group creation form
+    const handleGroupSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const userId = localStorage.getItem('userId'); // Admin's ID
+            const participantIds = selectedParticipants.map(p => p._id); // Get array of participant IDs
+    
+            const response = await axios.post('http://localhost:3000/api/group', {
+                admin: userId, // Send admin ID
+                name: groupData.name, // Group name
+                description: groupData.description, // Group description
+                participants: participantIds // Array of participant IDs
+            });
+    
+            console.log('Group created:', response.data);
+    
+            setShowGroupModal(false); // Close modal after group creation
+            fetchUserProfile(); // Refresh user profile to show updated group list in the sidebar
+        } catch (error) {
+            console.error('Error creating group:', error);
+            if (error.response) {
+                console.error('Response data:', error.response.data);
+            }
+        }
+    };
+    
+
     // Handle edit modal open
     const handleEditClick = () => {
         setEditData({
@@ -61,7 +110,7 @@ const UserProfile = ({ handleLogout }) => {
     };
 
     // Handle form input change
-    const handleChange = (e) => {
+    const handleProfileChange = (e) => {
         const { name, value } = e.target;
         setEditData((prevData) => ({
             ...prevData,
@@ -82,7 +131,7 @@ const UserProfile = ({ handleLogout }) => {
     };
 
     // Submit the edit form
-    const handleSubmit = async (e) => {
+    const handleProfileSubmit = async (e) => {
         e.preventDefault();
 
         try {
@@ -97,7 +146,7 @@ const UserProfile = ({ handleLogout }) => {
             if (selectedFile) {
                 formData.append('profilePicture', selectedFile); // Send the selected file to the backend
             }
-            
+
             const response = await axios.put(`http://localhost:3000/api/user/${userId}`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -151,6 +200,12 @@ const UserProfile = ({ handleLogout }) => {
                             </button>
                             <button
                                 className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                                onClick={handleCreateGroupClick}
+                            >
+                                Create Group
+                            </button>
+                            <button
+                                className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
                                 onClick={handleLogout}
                             >
                                 Logout
@@ -167,7 +222,7 @@ const UserProfile = ({ handleLogout }) => {
                 <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
                     <div className="bg-gray-900 rounded-lg p-6 w-96">
                         <h2 className="text-xl font-semibold mb-4">Edit Profile</h2>
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={handleProfileSubmit}>
                             <div className="mb-4">
                                 <label className="block mb-2">Profile Picture</label>
                                 <input
@@ -190,7 +245,7 @@ const UserProfile = ({ handleLogout }) => {
                                     type="number"
                                     name="phoneNo"
                                     value={editData.phoneNo}
-                                    onChange={handleChange}
+                                    onChange={handleProfileChange}
                                     className="text-black block w-full p-2 border border-gray-300 rounded"
                                 />
                             </div>
@@ -199,7 +254,7 @@ const UserProfile = ({ handleLogout }) => {
                                 <select
                                     name="language"
                                     value={editData.language}
-                                    onChange={handleChange}
+                                    onChange={handleProfileChange}
                                     className="text-black block w-full p-2 border border-gray-300 rounded"
                                 >
                                     <option value="Hindi">Hindi</option>
@@ -212,7 +267,7 @@ const UserProfile = ({ handleLogout }) => {
                                 <textarea
                                     name="bio"
                                     value={editData.bio}
-                                    onChange={handleChange}
+                                    onChange={handleProfileChange}
                                     className="text-black block w-full p-2 border border-gray-300 rounded"
                                     rows="4"
                                 />
@@ -230,6 +285,108 @@ const UserProfile = ({ handleLogout }) => {
                                     className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
                                 >
                                     Submit
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Create Group Modal */}
+            {showGroupModal && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    <div className="bg-gray-900 rounded-lg p-6 w-96">
+                        <h2 className="text-xl font-semibold mb-4">Create Group</h2>
+                        <form onSubmit={handleGroupSubmit}>
+                            <div className="mb-4">
+                                <label className="block mb-2">Group Name</label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={groupData.name}
+                                    onChange={handleGroupChange}
+                                    className="text-black block w-full p-2 border border-gray-300 rounded"
+                                    required
+                                />
+                            </div>
+                            <div className="mb-4">
+                                <label className="block mb-2">Description</label>
+                                <textarea
+                                    name="description"
+                                    value={groupData.description}
+                                    onChange={handleGroupChange}
+                                    className="text-black block w-full p-2 border border-gray-300 rounded"
+                                    rows="3"
+                                />
+                            </div>
+                            <div className="mb-4">
+                                <label className="block mb-2">Participants</label>
+                                <div>
+                                    {/* Dropdown for selecting participants */}
+                                    <select
+                                        onChange={(e) => {
+                                            const selectedContact = availableContacts.find(contact => contact._id === e.target.value);
+                                            if (selectedContact) {
+                                                // Immediately update available contacts to avoid duplication
+                                                const updatedAvailableContacts = availableContacts.filter(contact => contact._id !== e.target.value);
+                                                setAvailableContacts(updatedAvailableContacts); // Update available contacts
+
+                                                // Add to selected participants
+                                                setSelectedParticipants(prev => [...prev, selectedContact]);
+
+                                                e.target.value = ""; // Reset dropdown
+                                            }
+                                        }}
+                                        className="text-black block w-full p-2 border border-gray-300 rounded"
+                                    >
+                                        <option value="">Select a contact</option>
+                                        {availableContacts.map(contact => (
+                                            <option key={contact._id} value={contact._id}>
+                                                {contact.username}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Display selected participants */}
+                                <div className="mt-2">
+                                    {selectedParticipants.map(participant => (
+                                        <span
+                                            key={participant._id}
+                                            className="inline-flex items-center bg-blue-200 text-blue-800 text-sm font-semibold mr-2 px-2.5 py-0.5 rounded"
+                                        >
+                                            {participant.username}
+                                            <button
+                                                onClick={() => {
+                                                    // Remove from selected participants
+                                                    const updatedParticipants = selectedParticipants.filter(p => p._id !== participant._id);
+                                                    setSelectedParticipants(updatedParticipants);
+
+                                                    // Add back to available contacts
+                                                    setAvailableContacts(prev => [...prev, participant]);
+                                                }}
+                                                className="ml-1 text-blue-600 hover:text-blue-800"
+                                            >
+                                                &times;
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex justify-between">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowGroupModal(false)}
+                                    className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                                >
+                                    Create Group
                                 </button>
                             </div>
                         </form>
