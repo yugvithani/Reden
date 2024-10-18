@@ -10,6 +10,7 @@ const SideBar = ({ onContactClick }) => {
   const [showModal, setShowModal] = useState(false); // Modal visibility state
   const [newContactUsername, setNewContactUsername] = useState(''); // New contact username
   const [selectedContactId, setSelectedContactId] = useState(null); // Track the selected contact
+  const [errorMessage, setErrorMessage] = useState(''); // Store error message for the UI
 
   // Fetch contacts and initialize socket connection
   useEffect(() => {
@@ -72,6 +73,7 @@ const SideBar = ({ onContactClick }) => {
   // Toggle modal visibility
   const toggleModal = () => {
     setShowModal(!showModal);
+    setErrorMessage(''); // Clear error message when opening or closing modal
   };
 
   // Handle submit for new contact
@@ -93,14 +95,14 @@ const SideBar = ({ onContactClick }) => {
       });
 
       if (!response.ok) {
-        console.error('Failed to find user by username');
+        setErrorMessage('Failed to find user by username');
         return;
       }
 
       const contactUser = await response.json();
 
       if (!contactUser) {
-        alert('User not found');
+        setErrorMessage('User not found');
         return;
       }
 
@@ -121,11 +123,13 @@ const SideBar = ({ onContactClick }) => {
         fetchContacts(); // Update contacts
         setNewContactUsername('');
         setShowModal(false); // Close the modal after submission
+        setErrorMessage(''); // Clear error message after successful contact addition
       } else {
         const errorData = await createContactResponse.json();
-        alert(errorData.message || 'Error adding contact');
+        setErrorMessage(errorData.message || 'Error adding contact');
       }
     } catch (error) {
+      setErrorMessage('Error submitting new contact');
       console.error('Error submitting new contact:', error);
     }
   };
@@ -157,11 +161,15 @@ const SideBar = ({ onContactClick }) => {
       </div>
 
       {/* My Contacts */}
-      <ContactList
-        contacts={filteredContacts}
-        onContactClick={handleContactClick}
-        selectedContactId={selectedContactId} // Pass the selected contact ID
-      />
+      {filteredContacts.length > 0 ? (
+        <ContactList
+          contacts={filteredContacts}
+          onContactClick={handleContactClick}
+          selectedContactId={selectedContactId} // Pass the selected contact ID
+        />
+      ) : (
+        <p className="text-gray-300 mt-4">No contacts found</p>
+      )}
 
       {/* Modal for adding a new contact */}
       {showModal && (
@@ -177,6 +185,11 @@ const SideBar = ({ onContactClick }) => {
               onChange={(e) => setNewContactUsername(e.target.value)}
               className="w-full p-2 mb-4 bg-gray-700 text-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
             />
+
+            {/* Display error message */}
+            {errorMessage && (
+              <p className="text-red-500 mb-4">{errorMessage}</p>
+            )}
 
             {/* Buttons */}
             <div className="flex justify-end space-x-2">
