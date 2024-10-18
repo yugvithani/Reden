@@ -21,8 +21,8 @@ const UserProfile = ({ handleLogout }) => {
             setUserInfo(response.data); // Set the user's profile info in state
 
             const contRes = await axios.get(`http://localhost:3000/api/user/${userId}/contacts`);
-            setAvailableContacts(contRes.data.map(contact => contact.receiver)); // Assuming response.data is an array of contacts
-            console.log(contRes.data.map(contact => contact.receiver))
+            setAvailableContacts(contRes.data.map(contact => contact.receiver)); 
+
             setEditData({
                 phoneNo: response.data.phoneNo,
                 language: response.data.language,
@@ -75,20 +75,20 @@ const UserProfile = ({ handleLogout }) => {
     const handleGroupSubmit = async (e) => {
         e.preventDefault();
         try {
-            const userId = localStorage.getItem('userId'); // Admin's ID
-            const participantIds = selectedParticipants.map(p => p._id); // Get array of participant IDs
-    
+            const userId = localStorage.getItem('userId');
+            const participantIds = selectedParticipants.map(p => p._id); 
+
             const response = await axios.post('http://localhost:3000/api/group', {
-                admin: userId, // Send admin ID
-                name: groupData.name, // Group name
-                description: groupData.description, // Group description
-                participants: participantIds // Array of participant IDs
+                admin: userId,
+                name: groupData.name,
+                description: groupData.description,
+                participants: participantIds
             });
-    
+
             console.log('Group created:', response.data);
-    
+
             setShowGroupModal(false); // Close modal after group creation
-            fetchUserProfile(); // Refresh user profile to show updated group list in the sidebar
+            fetchUserProfile(); // may no need
         } catch (error) {
             console.error('Error creating group:', error);
             if (error.response) {
@@ -96,7 +96,6 @@ const UserProfile = ({ handleLogout }) => {
             }
         }
     };
-    
 
     // Handle edit modal open
     const handleEditClick = () => {

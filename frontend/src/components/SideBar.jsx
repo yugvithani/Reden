@@ -29,17 +29,31 @@ const SideBar = ({ onContactClick }) => {
       fetchContacts(); // Update contacts when a new contact is added in real-time
     });
 
+    // Listen for real-time updates of new groups
+    socket.on('group-created', (newGroup) => {
+      setContacts(prevContacts => [
+        ...prevContacts,
+        { ...newGroup, type: 'group' }, // Add new group to contacts state
+      ]);
+      setFilteredContacts(prevFilteredContacts => [
+        ...prevFilteredContacts,
+        { ...newGroup, type: 'group' }, // Update filtered contacts
+      ]);
+    });
+
     return () => {
       socket.disconnect(); // Cleanup on component unmount
     };
   }, []);
 
-  // Function to fetch contacts
+  // Fetch contacts and groups
   const fetchContacts = async () => {
     try {
       const token = localStorage.getItem('token');
       const userId = localStorage.getItem('userId');
-      const response = await fetch(`http://localhost:3000/api/user/${userId}/contacts`, {
+
+      // Fetch user contacts and groups
+      const response = await fetch(`http://localhost:3000/api/user/${userId}/contactsAndGroups`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -48,12 +62,17 @@ const SideBar = ({ onContactClick }) => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch contacts');
+        throw new Error('Failed to fetch contacts and groups');
       }
 
       const data = await response.json();
-      setContacts(data);
-      setFilteredContacts(data); // Initialize filtered contacts
+
+      const combinedData = [
+        ...data.contacts.map(contact => ({ ...contact, type: 'contact' })),
+        ...data.groups.map(group => ({ ...group, type: 'group' }))
+      ];
+      setContacts(combinedData); // Combine contacts and groups
+      setFilteredContacts(combinedData); // Initialize filtered list
     } catch (err) {
       console.error(err);
     }
@@ -63,10 +82,15 @@ const SideBar = ({ onContactClick }) => {
   const handleSearch = (searchTerm) => {
     setSearchTerm(searchTerm); // Update the search term
 
-    // Filter contacts based on the search term
-    const filtered = contacts.filter((contact) =>
-      contact.receiver.username.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Filter contacts and group based on the search term
+    const filtered = contacts.filter((item) => {
+      if (item.type === 'contact') {
+        return item.receiver.username.toLowerCase().includes(searchTerm.toLowerCase());
+      } else if (item.type === 'group') {
+        return item.name.toLowerCase().includes(searchTerm.toLowerCase());
+      }
+      return false;
+    });
     setFilteredContacts(filtered); // Update the filtered contacts
   };
 
@@ -135,9 +159,13 @@ const SideBar = ({ onContactClick }) => {
   };
 
   // Update the selected contact when a contact is clicked
-  const handleContactClick = (contact) => {
-    setSelectedContactId(contact.receiver._id); // Set the selected contact
-    onContactClick(contact); // Call the parent callback
+  const handleContactClick = (item) => {
+    if (item.type === 'contact') {
+      setSelectedContactId(item.receiver._id); // Set selected contact ID
+    } else if (item.type === 'group') {
+      setSelectedContactId(item._id); // Set selected group ID
+    }
+    onContactClick(item); // Call the parent callback
   };
 
   return (

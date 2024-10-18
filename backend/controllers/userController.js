@@ -213,7 +213,7 @@ const createContact = async (req, res) => {
     res.status(400).send(error);
   }
 };
-const getContactsByUser = async (req, res) => {
+const getContactsById = async (req, res) => {
   try {
     // Fetch the user by ID and populate contact details
     const user = await User.findById(req.params.id).populate('contact.receiver', 'username email profilePicture'); // Include fields you want to return
@@ -230,7 +230,24 @@ const getContactsByUser = async (req, res) => {
   }
 };
 
-const deleteContactByUser = async (req, res) => {
+const getContactsAndGroupsById = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const user = await User.findById(userId)
+      .populate('contact.receiver', 'username profilePicture') // Fetch contacts
+      .populate('group', 'name'); // Fetch groups with just the name
+    
+    const contacts = user.contact;
+    const groups = user.group;
+
+    res.json({ contacts, groups });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+}
+
+const deleteContactById = async (req, res) => {
   try {
     const userId = req.params.id;
     const receiverId = req.params.cid;
@@ -272,6 +289,7 @@ module.exports = {
   updateProfileById,
   deleteUserById,
   createContact,
-  getContactsByUser,
-  deleteContactByUser
+  getContactsById,
+  getContactsAndGroupsById,
+  deleteContactById
 };

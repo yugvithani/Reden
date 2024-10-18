@@ -13,8 +13,9 @@ const {
   updateProfileById,
   deleteUserById,
   createContact,
-  getContactsByUser,
-  deleteContactByUser
+  getContactsById,
+  getContactsAndGroupsById,
+  deleteContactById
 } = require('../controllers/userController');
 
 const storage = multer.diskStorage({
@@ -62,9 +63,12 @@ router.delete('/:id', deleteUserById);
 router.get('/contactBetween/:id/:cid', createContact);
 
 // Get all contacts by user ID
-router.get('/:id/contacts', getContactsByUser);
+router.get('/:id/contacts', getContactsById);
+
+// Get all contacts and groups by user ID
+router.get('/:id/contactsAndGroups', getContactsAndGroupsById);
 
 // Contact is delete with their related messages.
-router.delete('/:id/contact/:cid', deleteContactByUser);
+router.delete('/:id/contact/:cid', deleteContactById);
 
 module.exports = router;

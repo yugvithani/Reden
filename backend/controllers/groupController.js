@@ -51,6 +51,13 @@ const createGroup = async (req, res) => {
     // Save the group document in the database
     await group.save();
 
+    const io = req.app.get('socketio');
+    io.to(req.body.admin).emit('group-created', group); // Notify only the admin and notify participants
+    let len = req.body.participants.length;
+    while(len--){
+      io.to(req.body.participants[len]).emit('group-created', group); 
+    }
+
     res.status(201).send(group); // Respond with the created group
   } catch (error) {
     console.error('Error creating group:', error);
