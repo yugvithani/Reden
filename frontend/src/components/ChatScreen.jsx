@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import io from 'socket.io-client';
 import axios from 'axios';
-import UserProfile from './UserProfile'; // Import the new UserProfile component
+import UserProfile from './UserProfile';
+import GroupInfo from './GroupInfo';
 
 const socket = io('http://localhost:3000');
 
@@ -9,6 +10,7 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture, isGroupC
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [senderId, setSenderId] = useState(localStorage.getItem('userId'));
+    const [isLoading, setIsLoading] = useState(false);
     const lastMessageRef = useRef(null);
 
     useEffect(() => {
@@ -16,6 +18,7 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture, isGroupC
 
         if (userId && receiverId) {
             setSenderId(userId);
+            setIsLoading(true);
 
             // Join room logic based on whether it's a group chat or direct message
             if (isGroupChat) {
@@ -39,9 +42,12 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture, isGroupC
                         response = response1.data.concat(response2.data);
                     }
                     setMessages(response);
-                    console.log(response);
-                } catch (error) {
+                }
+                catch (error) {
                     console.error('Error fetching messages:', error);
+                }
+                finally {
+                    setIsLoading(false);
                 }
             };
 
@@ -71,7 +77,7 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture, isGroupC
         if (lastMessageRef.current) {
             lastMessageRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [messages]);    
+    }, [messages]);
 
     const handleSendMessage = async () => {
         if (newMessage.trim()) {
@@ -120,7 +126,7 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture, isGroupC
             {/* Chat Header */}
             <div className="flex justify-between items-center p-4 bg-gray-900 border-b border-gray-800">
                 <div className="flex items-center space-x-2">
-                    {receiverName && (
+                    {receiverName && !isGroupChat && (
                         <img
                             src={receiverProfilePicture}
                             alt="receiver"
@@ -128,6 +134,12 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture, isGroupC
                         />
                     )}
                     <h2 className="text-xl font-semibold">{receiverName}</h2>
+
+                    {isGroupChat && (
+                        <GroupInfo
+                            groupId={receiverId}
+                        />
+                    )}
                 </div>
 
                 {/* User Profile */}
@@ -136,59 +148,65 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture, isGroupC
 
             {!receiverId ? (
                 <div className="text-center">
-                    <h1 className="text-3xl text-center text-white mt-20">Select a contact to start chatting</h1>
+                    <h1 className="text-3xl text-center text-white mt-20">Select a contact or group to start chatting</h1>
                 </div>
             ) : (
-                <>
-                    {/* Chat Messages */}
-                    <div className="flex-1 p-4 overflow-y-auto bg-gray-800 hide-scrollbar">
-                        <div className="flex flex-col space-y-4">
-                            {messages
-                                .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-                                .map((msg, index) => (
-                                    <div
-                                        key={index}
-                                        ref={index === messages.length - 1 ? lastMessageRef : null}
-                                        className={`flex ${msg.sender._id === senderId ? 'justify-end' : 'justify-start'} items-start space-x-2`}
-                                    >
-
+                isLoading ? (
+                    <div className="flex-1 flex justify-center items-center">
+                        <h1 className="text-white text-2xl">Loading...</h1>
+                    </div>
+                ) : (
+                    <>
+                        {/* Chat Messages */}
+                        <div className="flex-1 p-4 overflow-y-auto bg-gray-800 hide-scrollbar">
+                            <div className="flex flex-col space-y-4">
+                                {messages
+                                    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+                                    .map((msg, index) => (
                                         <div
-                                            className={`p-3 rounded-lg max-w-xs text-sm ${msg.sender._id === senderId ? 'bg-cyan-700 text-gray-200' : 'bg-gray-700 text-gray-200'}`}
+                                            key={index}
+                                            ref={index === messages.length - 1 ? lastMessageRef : null}
+                                            className={`flex ${msg.sender._id === senderId ? 'justify-end' : 'justify-start'} items-start space-x-2`}
                                         >
-                                            {/* Show sender's name in group chat */}
-                                            {msg.sender._id !== senderId && isGroupChat && (
-                                                <div className="text-xs text-black mb-1">
-                                                    {msg.sender.username || 'Unknown'}
-                                                </div>
-                                            )}
-                                            <p>{msg.content}</p>
-                                            <span className="flex text-xs text-gray-400 mt-1 justify-end">
-                                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))
-                            }
-                        </div>
-                    </div>
 
-                    {/* Message Input */}
-                    <div className="p-4 bg-gray-800 border-t border-gray-800 flex items-center">
-                        <input
-                            type="text"
-                            placeholder="Enter a Message..."
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            className="flex-grow p-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                        />
-                        <button
-                            className="ml-2 bg-gray-800 p-2 rounded-lg hover:bg-cyan-700 transition duration-300"
-                            onClick={handleSendMessage}
-                        >
-                            ➤
-                        </button>
-                    </div>
-                </>
+                                            <div
+                                                className={`p-3 rounded-lg max-w-xs text-sm ${msg.sender._id === senderId ? 'bg-cyan-700 text-gray-200' : 'bg-gray-700 text-gray-200'}`}
+                                            >
+                                                {/* Show sender's name in group chat */}
+                                                {msg.sender._id !== senderId && isGroupChat && (
+                                                    <div className="text-xs text-black mb-1">
+                                                        {msg.sender.username || 'Unknown'}
+                                                    </div>
+                                                )}
+                                                <p>{msg.content}</p>
+                                                <span className="flex text-xs text-gray-400 mt-1 justify-end">
+                                                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))
+                                }
+                            </div>
+                        </div>
+
+                        {/* Message Input */}
+                        <div className="p-4 bg-gray-800 border-t border-gray-800 flex items-center">
+                            <input
+                                type="text"
+                                placeholder="Enter a Message..."
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                className="flex-grow p-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                            />
+                            <button
+                                className="ml-2 bg-gray-800 p-2 rounded-lg hover:bg-cyan-700 transition duration-300"
+                                onClick={handleSendMessage}
+                            >
+                                ➤
+                            </button>
+                        </div>
+                    </>
+                )
             )}
         </div>
     );

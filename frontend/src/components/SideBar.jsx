@@ -9,6 +9,8 @@ const SideBar = ({ onContactClick }) => {
   const [searchTerm, setSearchTerm] = useState(''); // Search term state
   const [showModal, setShowModal] = useState(false); // Modal visibility state
   const [newContactUsername, setNewContactUsername] = useState(''); // New contact username
+  const [isNewGroup, setIsNewGroup] = useState(false);
+  const [newGroupCode, setNewGroupCode] = useState('');
   const [selectedContactId, setSelectedContactId] = useState(null); // Track the selected contact
   const [errorMessage, setErrorMessage] = useState(''); // Store error message for the UI
 
@@ -102,59 +104,107 @@ const SideBar = ({ onContactClick }) => {
 
   // Handle submit for new contact
   const handleSubmitNewContact = async () => {
-    if (!newContactUsername) return;
+    if (isNewGroup) {
+      if(!newGroupCode) return;
+      try {
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId');
 
-    try {
-      // Fetch the contact's userId based on the username
-      const token = localStorage.getItem('token');
-      const userId = localStorage.getItem('userId');
+        const response = await fetch(`http://localhost:3000/api/group/groupcode/${newGroupCode}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
 
-      // Fetch the user details by username
-      const response = await fetch(`http://localhost:3000/api/user/getUserByUsername/${newContactUsername}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+        if (!response.ok) {
+          setErrorMessage('No group exist');
+          return;
+        }
 
-      if (!response.ok) {
-        setErrorMessage('Failed to find user by username');
-        return;
+        const group = await response.json();
+        const groupId = await group._id
+
+        if (group.participant.some(pt => pt == userId)) {
+          setErrorMessage('You are already in the group');
+          return;
+        }
+
+        const resGroup = await fetch(`http://localhost:3000/api/group/${newGroupCode}/${userId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (resGroup.ok) {
+          console.log('Group added successfully');
+
+          fetchContacts();
+          setNewGroupCode('');
+          setShowModal(false);
+          setErrorMessage('');
+        } else {
+          const errorData = await createContactResponse.json();
+          setErrorMessage(errorData.message || 'Error adding group');
+        }
       }
-
-      const contactUser = await response.json();
-
-      if (!contactUser) {
-        setErrorMessage('User not found');
-        return;
+      catch (error) {
+        setErrorMessage('Error adding new group');
+        console.error('Error adding new group:', error);
       }
+    }
+    else {
+      if (!newContactUsername) return;
+      try {
+        // Fetch the contact's userId based on the username
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId');
 
-      const contactId = contactUser._id;
+        // Fetch the user details by username
+        const response = await fetch(`http://localhost:3000/api/user/getUserByUsername/${newContactUsername}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
 
-      // Make API call to create the contact
-      const createContactResponse = await fetch(`http://localhost:3000/api/user/contactBetween/${userId}/${contactId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+        if (!response.ok) {
+          setErrorMessage('Failed to find user by username');
+          return;
+        }
 
-      if (createContactResponse.ok) {
-        console.log('Contact added successfully');
+        const contactUser = await response.json();
+        const contactId = contactUser._id;
 
-        fetchContacts(); // Update contacts
-        setNewContactUsername('');
-        setShowModal(false); // Close the modal after submission
-        setErrorMessage(''); // Clear error message after successful contact addition
-      } else {
-        const errorData = await createContactResponse.json();
-        setErrorMessage(errorData.message || 'Error adding contact');
+        // Make API call to create the contact
+        const createContactResponse = await fetch(`http://localhost:3000/api/user/contactBetween/${userId}/${contactId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (createContactResponse.ok) {
+          console.log('Contact added successfully');
+
+          fetchContacts(); // Update contacts
+          setNewContactUsername('');
+          setShowModal(false); // Close the modal after submission
+          setErrorMessage(''); // Clear error message after successful contact addition
+        } else {
+          const errorData = await createContactResponse.json();
+          setErrorMessage(errorData.message || 'Error adding contact');
+        }
       }
-    } catch (error) {
-      setErrorMessage('Error submitting new contact');
-      console.error('Error submitting new contact:', error);
+      catch (error) {
+        setErrorMessage('Error adding new contact');
+        console.error('Error adding new contact:', error);
+      }
     }
   };
 
@@ -203,14 +253,37 @@ const SideBar = ({ onContactClick }) => {
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-gray-800 rounded-lg p-6 w-1/3">
-            <h2 className="text-xl text-white mb-4">Add New Contact</h2>
+            {/* <h2 className="text-xl text-white mb-4">Add New Chat</h2> */}
+
+            {/* Toggle Switch between Contact and Group */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl text-white mb-1">Add {isNewGroup ? 'Group' : 'Contact'}</h2>
+              <div className="flex items-center">
+                <span className="text-sm text-gray-300 mr-2">Contact</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isNewGroup}
+                    onChange={() => {
+                      setIsNewGroup(!isNewGroup)
+                      setErrorMessage('')
+                      setNewContactUsername('')
+                      setNewGroupCode('')
+                    }} // Toggle between contact and group
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:bg-cyan-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:left-1.5 after:top-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                </label>
+                <span className="text-sm text-gray-300 ml-2">Group</span>
+              </div>
+            </div>
 
             {/* Username input */}
             <input
               type="text"
-              placeholder="Enter username"
-              value={newContactUsername}
-              onChange={(e) => setNewContactUsername(e.target.value)}
+              placeholder={isNewGroup ? "Enter Group code" : "Enter username"}
+              value={isNewGroup ? newGroupCode : newContactUsername}
+              onChange={(e) => (isNewGroup ? setNewGroupCode(e.target.value) : setNewContactUsername(e.target.value))}
               className="w-full p-2 mb-4 bg-gray-700 text-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
             />
 
@@ -226,7 +299,7 @@ const SideBar = ({ onContactClick }) => {
                 className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-500"
                 onClick={toggleModal}
               >
-                Close
+                Cancel
               </button>
 
               {/* Submit Button */}
@@ -234,7 +307,7 @@ const SideBar = ({ onContactClick }) => {
                 className="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-500"
                 onClick={handleSubmitNewContact}
               >
-                Submit
+                Add
               </button>
             </div>
           </div>

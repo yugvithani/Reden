@@ -7,7 +7,7 @@ const Home = () => {
   const location = useLocation();
   const { user } = location.state || {};
   const navigate = useNavigate();
-  const [selectedContact, setSelectedContact] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -17,7 +17,7 @@ const Home = () => {
 
   // Define the onContactClick function
   const onContactClick = (contact) => {
-    setSelectedContact(contact); // Set the selected contact
+    setSelectedItem(contact); // Set the selected contact
     console.log(contact);
   };
 
@@ -28,10 +28,10 @@ const Home = () => {
 
       {/* Chat Window */}
       <ChatScreen
-        receiverName={selectedContact ? (selectedContact.type === 'group' ? selectedContact.groupName : selectedContact.receiver.username) : ('')}
-        receiverId={selectedContact ? (selectedContact.type === 'group' ? selectedContact._id : selectedContact.receiver._id) : null}
-        receiverProfilePicture={selectedContact ? (selectedContact.type === 'group' ? null : `http://localhost:3000${selectedContact.receiver.profilePicture}`) : 'https://via.placeholder.com/40'}
-        isGroupChat={selectedContact ? (selectedContact.type === 'group') : (false)}
+        receiverName={selectedItem ? (selectedItem.type === 'group' ? selectedItem.name : selectedItem.receiver.username) : ('')}
+        receiverId={selectedItem ? (selectedItem.type === 'group' ? selectedItem._id : selectedItem.receiver._id) : null}
+        receiverProfilePicture={selectedItem ? (selectedItem.type === 'group' ? null : `http://localhost:3000${selectedItem.receiver.profilePicture}`) : 'https://via.placeholder.com/40'}
+        isGroupChat={selectedItem ? (selectedItem.type === 'group') : (false)}
       />
     </div>
   );

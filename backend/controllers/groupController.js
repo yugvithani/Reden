@@ -76,7 +76,17 @@ const getGroups = async (req, res) => {
 
 const getGroupById = async (req, res) => {
   try {
-    const group = await Group.findById(req.params.id);
+    const group = await Group.findById(req.params.gid).populate('admin','username');   
+    if (!group) return res.status(404).send("Group not found");
+    res.send(group);
+  } catch (error) {
+    res.status(500).send(error);
+  }
+};
+
+const getGroupByGroupCode = async (req, res) => {
+  try {
+    const group = await Group.findOne({ groupCode : req.params.gid});   
     if (!group) return res.status(404).send("Group not found");
     res.send(group);
   } catch (error) {
@@ -134,4 +144,4 @@ const deleteGroup = async (req, res) => {
   }
 }
 
-module.exports = { createGroup, getGroups, getGroupById, joinGroupByGroupCode, deleteGroup };
+module.exports = { createGroup, getGroups, getGroupById, getGroupByGroupCode, joinGroupByGroupCode, deleteGroup };
