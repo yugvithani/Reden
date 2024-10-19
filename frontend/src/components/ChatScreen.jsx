@@ -5,10 +5,11 @@ import UserProfile from './UserProfile'; // Import the new UserProfile component
 
 const socket = io('http://localhost:3000');
 
-const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture }) => {
+const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture, isGroupChat }) => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [senderId, setSenderId] = useState(localStorage.getItem('userId'));
+    const lastMessageRef = useRef(null);
 
     useEffect(() => {
         const userId = localStorage.getItem('userId');
@@ -16,15 +17,29 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture }) => {
         if (userId && receiverId) {
             setSenderId(userId);
 
-            socket.emit('joinRoom', { userId });
-            socket.emit('joinRoom', { userId: receiverId });
+            // Join room logic based on whether it's a group chat or direct message
+            if (isGroupChat) {
+                socket.emit('joinRoom', { groupId: receiverId });
+            } else {
+                socket.emit('joinRoom', { userId });
+                socket.emit('joinRoom', { userId: receiverId });
+            }
 
             const fetchMessages = async () => {
                 try {
-                    const response1 = await axios.get(`http://localhost:3000/api/msg/directMsgBetween/${userId}/${receiverId}`);
-                    const response2 = await axios.get(`http://localhost:3000/api/msg/directMsgBetween/${receiverId}/${userId}`);
-                    const response = response1.data.concat(response2.data);
+                    let response;
+                    if (isGroupChat) {
+                        // Fetch group messages
+                        response = await axios.get(`http://localhost:3000/api/msg/group/${receiverId}`);
+                        response = response.data;
+                    } else {
+                        // Fetch direct messages
+                        const response1 = await axios.get(`http://localhost:3000/api/msg/directMsgBetween/${userId}/${receiverId}`);
+                        const response2 = await axios.get(`http://localhost:3000/api/msg/directMsgBetween/${receiverId}/${userId}`);
+                        response = response1.data.concat(response2.data);
+                    }
                     setMessages(response);
+                    console.log(response);
                 } catch (error) {
                     console.error('Error fetching messages:', error);
                 }
@@ -49,15 +64,23 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture }) => {
         return () => {
             socket.off('receiveMessage', messageHandler);
         };
-    }, [receiverId]);
+    }, [receiverId, isGroupChat]);
+
+    // for scroll upto end msg
+    useEffect(() => {
+        if (lastMessageRef.current) {
+            lastMessageRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [messages]);    
 
     const handleSendMessage = async () => {
         if (newMessage.trim()) {
             const messageData = {
                 content: newMessage,
                 sender: senderId,
-                receiver: receiverId,
-                isDirectMsg: true,
+                receiver: isGroupChat ? null : receiverId,
+                isDirectMsg: !isGroupChat,
+                group: isGroupChat ? receiverId : null,
                 type: 'msg',
                 timestamp: Date.now()
             };
@@ -78,14 +101,22 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture }) => {
         }
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem('token'); // Remove the token
-        localStorage.removeItem('userId'); // Remove the userId
-        window.location.href = '/login'; // Redirect to login page
-    };
-
     return (
         <div className="flex-1 flex flex-col bg-gray-900">
+            {/* CSS for hiding the scrollbar */}
+            <style>{`
+                /* Hide scrollbar for WebKit-based browsers (Chrome, Safari, etc.) */
+                .hide-scrollbar::-webkit-scrollbar {
+                    display: none;
+                }
+
+                /* Hide scrollbar for Firefox */
+                .hide-scrollbar {
+                    scrollbar-width: none;
+                    -ms-overflow-style: none; /* IE and Edge */
+                }
+            `}</style>
+
             {/* Chat Header */}
             <div className="flex justify-between items-center p-4 bg-gray-900 border-b border-gray-800">
                 <div className="flex items-center space-x-2">
@@ -98,9 +129,9 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture }) => {
                     )}
                     <h2 className="text-xl font-semibold">{receiverName}</h2>
                 </div>
-                
+
                 {/* User Profile */}
-                <UserProfile handleLogout={handleLogout} />
+                <UserProfile />
             </div>
 
             {!receiverId ? (
@@ -110,31 +141,38 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture }) => {
             ) : (
                 <>
                     {/* Chat Messages */}
-                    <div className="flex-1 p-4 overflow-y-auto bg-gray-800">
+                    <div className="flex-1 p-4 overflow-y-auto bg-gray-800 hide-scrollbar">
                         <div className="flex flex-col space-y-4">
-                            {/* Sort messages by timestamp */}
                             {messages
                                 .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
                                 .map((msg, index) => (
                                     <div
                                         key={index}
-                                        className={`flex ${msg.sender === senderId ? 'justify-end' : 'justify-start'} items-start space-x-2`}
+                                        ref={index === messages.length - 1 ? lastMessageRef : null}
+                                        className={`flex ${msg.sender._id === senderId ? 'justify-end' : 'justify-start'} items-start space-x-2`}
                                     >
+
                                         <div
-                                            className={`p-3 rounded-lg max-w-xs text-sm ${msg.sender === senderId ? 'bg-cyan-700 text-gray-200' : 'bg-gray-700 text-gray-200'
-                                                }`}
+                                            className={`p-3 rounded-lg max-w-xs text-sm ${msg.sender._id === senderId ? 'bg-cyan-700 text-gray-200' : 'bg-gray-700 text-gray-200'}`}
                                         >
+                                            {/* Show sender's name in group chat */}
+                                            {msg.sender._id !== senderId && isGroupChat && (
+                                                <div className="text-xs text-black mb-1">
+                                                    {msg.sender.username || 'Unknown'}
+                                                </div>
+                                            )}
                                             <p>{msg.content}</p>
                                             <span className="flex text-xs text-gray-400 mt-1 justify-end">
                                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </div>
                                     </div>
-                                ))}
+                                ))
+                            }
                         </div>
                     </div>
 
-                    {/* Message Input and Send Button */}
+                    {/* Message Input */}
                     <div className="p-4 bg-gray-800 border-t border-gray-800 flex items-center">
                         <input
                             type="text"

@@ -39,17 +39,29 @@ app.set('socketio', io);
 
 // Handle socket connections
 io.on('connection', (socket) => {
-  socket.on('joinRoom', ({ userId }) => {
-    socket.join(userId.toString());
-    console.log(`User ${userId} joined room ${userId}`);
+  socket.on('joinRoom', ({ userId, groupId }) => {
+    if (groupId) {
+      // Join group room if groupId is provided (for group chats)
+      socket.join(groupId.toString());
+      console.log(`group room ${groupId}`);
+    } else if (userId) {
+      // Join user's room for one-to-one messaging
+      socket.join(userId.toString());
+      console.log(`User ${userId} joined room ${userId}`);
+    }
   });
 
   socket.on('sendMessage', (messageData) => {
     console.log('Sending message:', messageData);
-    io.to(messageData.receiver.toString()).emit('receiveMessage', messageData);
-    // Only emit to sender if it's not the same as receiver
-    if (messageData.sender !== messageData.receiver) {
-      io.to(messageData.sender.toString()).emit('receiveMessage', messageData);
+
+    if (!messageData.isDirectMsg) {
+      io.to(messageData.group.toString()).emit('receiveMessage', messageData);
+    } else {
+      io.to(messageData.receiver.toString()).emit('receiveMessage', messageData);
+      
+      if (messageData.sender !== messageData.receiver) {
+        io.to(messageData.sender.toString()).emit('receiveMessage', messageData);
+      }
     }
   });
 

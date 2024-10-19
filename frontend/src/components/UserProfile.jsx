@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 
-const UserProfile = ({ handleLogout }) => {
+const UserProfile = () => {
     const [showDropdown, setShowDropdown] = useState(false);
     const [userInfo, setUserInfo] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -161,6 +161,12 @@ const UserProfile = ({ handleLogout }) => {
                 console.error('Response data:', error.response.data);
             }
         }
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('token'); // Remove the token
+        localStorage.removeItem('userId'); // Remove the userId
+        window.location.href = '/login'; // Redirect to login page
     };
 
     return (
