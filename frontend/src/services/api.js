@@ -1,8 +1,8 @@
 export const signup = async (userData) => {
   try {
-    const res = await fetch('http://localhost:3000/api/user/signup', {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/user/signup`, {
       method: 'POST',
-      body: userData, // Directly sending FormData
+      body: userData, 
     });
 
     if (!res.ok) {
@@ -20,7 +20,7 @@ export const signup = async (userData) => {
 
 export const login = async (userData) => {
   try {
-    const res = await fetch('http://localhost:3000/api/user/login', {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/user/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

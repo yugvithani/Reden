@@ -17,10 +17,10 @@ const UserProfile = () => {
     const fetchUserProfile = async () => {
         try {
             const userId = localStorage.getItem('userId'); // Get the current user ID
-            const response = await axios.get(`http://localhost:3000/api/user/${userId}`); // Fetch user info
+            const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/user/${userId}`); // Fetch user info
             setUserInfo(response.data); // Set the user's profile info in state
 
-            const contRes = await axios.get(`http://localhost:3000/api/user/${userId}/contacts`);
+            const contRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/user/${userId}/contacts`);
             setAvailableContacts(contRes.data.map(contact => contact.receiver)); 
 
             setEditData({
@@ -78,7 +78,7 @@ const UserProfile = () => {
             const userId = localStorage.getItem('userId');
             const participantIds = selectedParticipants.map(p => p._id); 
 
-            const response = await axios.post('http://localhost:3000/api/group', {
+            const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/group`, {
                 admin: userId,
                 name: groupData.name,
                 description: groupData.description,
@@ -146,11 +146,7 @@ const UserProfile = () => {
                 formData.append('profilePicture', selectedFile); // Send the selected file to the backend
             }
 
-            const response = await axios.put(`http://localhost:3000/api/user/${userId}`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            const response = await axios.put(`${import.meta.env.VITE_API_BASE_URL}/api/user/${userId}`, formData);
 
             console.log('Update response:', response.data);
             setShowEditModal(false);
@@ -164,9 +160,9 @@ const UserProfile = () => {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('token'); // Remove the token
-        localStorage.removeItem('userId'); // Remove the userId
-        window.location.href = '/login'; // Redirect to login page
+        localStorage.removeItem('token'); 
+        localStorage.removeItem('userId'); 
+        window.location.href = '/login';
     };
 
     return (
@@ -186,7 +182,7 @@ const UserProfile = () => {
                             <div className="px-4 py-2 text-gray-700">
                                 <p className="font-semibold">My Profile</p>
                                 <img
-                                    src={userInfo.profilePicture ? `http://localhost:3000${userInfo.profilePicture}` : 'https://via.placeholder.com/150'}
+                                    src={userInfo.profilePicture ? `${import.meta.env.VITE_API_BASE_URL}${userInfo.profilePicture}` : 'https://via.placeholder.com/150'}
                                     alt="Profile"
                                     className="w-16 h-16 rounded-full mx-auto my-2"
                                 />

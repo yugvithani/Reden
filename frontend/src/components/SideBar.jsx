@@ -19,7 +19,7 @@ const SideBar = ({ onContactClick }) => {
     fetchContacts();
 
     // Initialize socket connection
-    const socket = io('http://localhost:3000');
+    const socket = io(`${import.meta.env.VITE_API_BASE_URL}`);
 
     // Listen for real-time updates of new contacts
     const userId = localStorage.getItem('userId');
@@ -55,7 +55,7 @@ const SideBar = ({ onContactClick }) => {
       const userId = localStorage.getItem('userId');
 
       // Fetch user contacts and groups
-      const response = await fetch(`http://localhost:3000/api/user/${userId}/contactsAndGroups`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/user/${userId}/contactsAndGroups`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -110,7 +110,7 @@ const SideBar = ({ onContactClick }) => {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('userId');
 
-        const response = await fetch(`http://localhost:3000/api/group/groupcode/${newGroupCode}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/group/groupcode/${newGroupCode}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -131,7 +131,7 @@ const SideBar = ({ onContactClick }) => {
           return;
         }
 
-        const resGroup = await fetch(`http://localhost:3000/api/group/${newGroupCode}/${userId}`, {
+        const resGroup = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/group/${newGroupCode}/${userId}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -164,7 +164,7 @@ const SideBar = ({ onContactClick }) => {
         const userId = localStorage.getItem('userId');
 
         // Fetch the user details by username
-        const response = await fetch(`http://localhost:3000/api/user/getUserByUsername/${newContactUsername}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/user/getUserByUsername/${newContactUsername}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -181,7 +181,7 @@ const SideBar = ({ onContactClick }) => {
         const contactId = contactUser._id;
 
         // Make API call to create the contact
-        const createContactResponse = await fetch(`http://localhost:3000/api/user/contactBetween/${userId}/${contactId}`, {
+        const createContactResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/user/contactBetween/${userId}/${contactId}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

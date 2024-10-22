@@ -8,11 +8,11 @@ const GroupInfo = ({ groupId }) => {
 
     useEffect(() => {
         fetchGroupInfo();
-    }, []);
+    }, [groupId]);
 
     const fetchGroupInfo = async () => {
         try {
-            const response = await axios(`http://localhost:3000/api/group/${groupId}`);
+            const response = await axios(`${import.meta.env.VITE_API_BASE_URL}/api/group/${groupId}`);
             const groupData = await response.data;
             console.log(groupData);
             

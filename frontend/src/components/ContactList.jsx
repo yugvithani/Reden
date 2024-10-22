@@ -19,7 +19,7 @@ const ContactList = ({ contacts, onContactClick, selectedContactId }) => {
                 {/* Display profile picture or default avatar */}
                 <img
                   className="w-10 h-10 rounded-full"
-                  src={item.receiver.profilePicture ? `http://localhost:3000${item.receiver.profilePicture}` : 'https://via.placeholder.com/40'}
+                  src={item.receiver.profilePicture ? `${import.meta.env.VITE_API_BASE_URL}${item.receiver.profilePicture}` : 'https://via.placeholder.com/40'}
                   alt={`${item.receiver.username}'s avatar`}
                 />
               </div>

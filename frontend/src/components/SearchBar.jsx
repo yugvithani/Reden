@@ -1,4 +1,3 @@
-// SearchBar.js
 const SearchBar = ({ onSearch }) => {
     const handleInputChange = (e) => {
       onSearch(e.target.value); // Call the search function provided by the parent

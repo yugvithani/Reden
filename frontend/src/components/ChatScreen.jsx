@@ -4,7 +4,7 @@ import axios from 'axios';
 import UserProfile from './UserProfile';
 import GroupInfo from './GroupInfo';
 
-const socket = io('http://localhost:3000');
+const socket = io(`${import.meta.env.VITE_API_BASE_URL}`);
 
 const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture, isGroupChat }) => {
     const [messages, setMessages] = useState([]);
@@ -33,12 +33,12 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture, isGroupC
                     let response;
                     if (isGroupChat) {
                         // Fetch group messages
-                        response = await axios.get(`http://localhost:3000/api/msg/group/${receiverId}`);
+                        response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/msg/group/${receiverId}`);
                         response = response.data;
                     } else {
                         // Fetch direct messages
-                        const response1 = await axios.get(`http://localhost:3000/api/msg/directMsgBetween/${userId}/${receiverId}`);
-                        const response2 = await axios.get(`http://localhost:3000/api/msg/directMsgBetween/${receiverId}/${userId}`);
+                        const response1 = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/msg/directMsgBetween/${userId}/${receiverId}`);
+                        const response2 = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/msg/directMsgBetween/${receiverId}/${userId}`);
                         response = response1.data.concat(response2.data);
                     }
                     setMessages(response);
@@ -92,7 +92,7 @@ const ChatScreen = ({ receiverName, receiverId, receiverProfilePicture, isGroupC
             };
 
             try {
-                const response = await axios.post('http://localhost:3000/api/msg/', messageData);
+                const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/msg/`, messageData);
 
                 if (response.status === 201) {
                     console.log('Message saved:', response.data);
