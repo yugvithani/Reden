@@ -58,7 +58,7 @@ io.on('connection', (socket) => {
       io.to(messageData.group.toString()).emit('receiveMessage', messageData);
     } else {
       io.to(messageData.receiver.toString()).emit('receiveMessage', messageData);
-      
+
       if (messageData.sender !== messageData.receiver) {
         io.to(messageData.sender.toString()).emit('receiveMessage', messageData);
       }
@@ -80,23 +80,23 @@ app.use("/api/group", groupRoutes);
 
 // Fallback route for 404
 app.use((req, res, next) => {
-    const error = new HttpError("Could not find this route.", 404);
-    throw error;
+  const error = new HttpError("Could not find this route.", 404);
+  throw error;
 });
 
 // Error handling middleware
 app.use((error, req, res, next) => {
-    if (res.headerSent) {
-        return next(error);
-    }
-    res.status(error.code || 500);
-    res.json({ message: error.message || "An unknown error occurred!" });
+  if (res.headerSent) {
+    return next(error);
+  }
+  res.status(error.code || 500);
+  res.json({ message: error.message || "An unknown error occurred!" });
 });
 
 
 mongoose.connect(
-    process.env.atlas 
-  )
+  process.env.atlas
+)
   .then(() => {
     http.listen(3000);
     console.log("Mongo is connect.")

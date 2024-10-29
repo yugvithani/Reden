@@ -1,9 +1,7 @@
-const { timeStamp } = require("console");
 const Msg = require("../models/msg");
 const User = require("../models/user");
 const Group = require("../models/group");
 
-// send a message 
 const sendMsg = async (req, res) => {
   try {
     const msg = new Msg({
@@ -14,6 +12,7 @@ const sendMsg = async (req, res) => {
     const isDirectMsg = req.body.isDirectMsg;
     const receiver = isDirectMsg ? await User.findById(req.body.receiver) : await Group.findById(req.body.group);
 
+    // only change lastseen if one to one chat
     if (isDirectMsg) {
       const contact = sender.contact.find(contact => contact.receiver.equals(receiver._id));
       contact.lastSeen = new Date();
@@ -22,24 +21,19 @@ const sendMsg = async (req, res) => {
       contactInReceiver.lastSeen = new Date();
       await receiver.save();
     }
-    // else {
-    //   for (const userId of receiver.participant) {
-    //     const user = await User.findById(userId);
-    //     user.group.push(receiver._id);
-    //     await user.save();
-    //   }
-    // }
 
+    // save msg to send msg
     await msg.save();
     res.status(201).send(await msg.populate('sender', 'username'));
   } catch (error) {
-    res.status(400).send("error");
+    console.log('Error to send message:', error);
+    res.status(500).send(error);
   }
 };
 
-// get messages by group
 const getMsgsByGroup = async (req, res) => {
   try {
+    // find msg and populate sender for chat screen in frontend
     const msgs = await Msg.find({ group: req.params.groupId }).populate('sender', 'username');
     res.send(msgs);
   } catch (error) {
@@ -70,6 +64,7 @@ const getDirectMsgs = async (req, res) => {
     const senderId = req.params.sid;
     const receiverId = req.params.rid;
 
+    // 
     const directMsgs = await Msg.find({ sender: senderId, receiver: receiverId, isDirectMsg: true }).populate('sender', 'username').populate('receiver', 'username');
     res.send(directMsgs);
   } catch (error) {
@@ -77,4 +72,10 @@ const getDirectMsgs = async (req, res) => {
   }
 }
 
-module.exports = { sendMsg, getMsgsByGroup, getDirectMsgsByReceiver, getDirectMsgsBySender, getDirectMsgs };
+module.exports = {
+  sendMsg,
+  getMsgsByGroup,
+  getDirectMsgsByReceiver,
+  getDirectMsgsBySender,
+  getDirectMsgs
+};

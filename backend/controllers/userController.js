@@ -14,6 +14,7 @@ const signup = async (req, res) => {
       return res.status(400).send({ message: 'User already exist.' });
     }
 
+    // hash the password
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
     const user = new User({
@@ -37,15 +38,13 @@ const login = async (req, res) => {
     const { username, password } = req.body;
 
     const user = await User.findOne({ username: username });
-    if (!user) {
+    if (!user)
       return res.status(400).send('Invalid username or password.');
-    }
 
     // Compare password
     const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
+    if (!validPassword)
       return res.status(400).send('Invalid username or password.');
-    }
 
     // Generate JWT token
     const token = generateToken(user);
@@ -76,7 +75,8 @@ const getUsers = async (req, res) => {
 const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).send();
+    if (!user)
+      return res.status(404).send('User not found.');
     res.send(user);
   } catch (error) {
     res.status(500).send(error);
@@ -86,7 +86,8 @@ const getUserById = async (req, res) => {
 const getUserByUsername = async (req, res) => {
   try {
     const user = await User.findOne({ username: req.params.username });
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user)
+      return res.status(404).json({ message: 'User not found' });
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -100,9 +101,8 @@ const updateUserById = async (req, res) => {
 
     // Fetch the current user data
     const currentUser = await User.findById(userId);
-    if (!currentUser) {
+    if (!currentUser)
       return res.status(404).json({ error: 'User not found' });
-    }
 
     const updatedData = {
       phoneNo,
@@ -124,13 +124,12 @@ const updateUserById = async (req, res) => {
       updatedData.profilePicture = `/uploads/${req.file.filename}`;
     }
 
-    // Update user in MongoDB
     const user = await User.findByIdAndUpdate(userId, updatedData, { new: true });
-    
+
     res.json(user);
   } catch (error) {
     console.error('Error updating user profile:', error);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).send(error);
   }
 };
 
@@ -145,14 +144,15 @@ const updateProfileById = async (req, res) => {
     );
     res.status(200).json(updatedUser);
   } catch (error) {
-    res.status(400).json({ message: 'Error updating profile', error });
+    res.status(500).send(error);
   }
 }
 const deleteUserById = async (req, res) => {
   try {
     const userId = req.params.id;
     const user = await User.findById(userId);
-    if (!user) return res.status(404).send();
+    if (!user)
+      return res.status(404).send();
 
     await Msg.deleteMany({ $or: [{ sender: userId }, { receiver: userId }] });
 
@@ -236,14 +236,14 @@ const getContactsAndGroupsById = async (req, res) => {
     const user = await User.findById(userId)
       .populate('contact.receiver', 'username profilePicture') // Fetch contacts
       .populate('group', 'name'); // Fetch groups with just the name
-    
+
     const contacts = user.contact;
     const groups = user.group;
 
     res.json({ contacts, groups });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send(error);
   }
 }
 
@@ -274,7 +274,7 @@ const deleteContactById = async (req, res) => {
     res.status(200).json({ message: 'Contact deleted successfully' });
   }
   catch (error) {
-    res.status(400).json("Failed to delete Contact.");
+    res.status(500).send(error);
   }
 }
 

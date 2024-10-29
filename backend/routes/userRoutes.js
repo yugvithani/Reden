@@ -33,7 +33,7 @@ const authenticate = require('../middlewares/authMiddleware');
 const router = express.Router();
 
 // Create a new user
-router.post('/signup', upload.single('profilePicture'), signup); // Add `upload.single('profilePicture')` middleware
+router.post('/signup', upload.single('profilePicture'), signup);
 
 // login
 router.post('/login', login);

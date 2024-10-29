@@ -2,7 +2,7 @@ require('dotenv').config()
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'reden';
-const JWT_EXPIRATION = '1h'; // Token expiration time
+const JWT_EXPIRATION = '3h'; // Token expiration time
 
 // Function to generate JWT token
 const generateToken = (user) => {

@@ -1,10 +1,10 @@
 const Group = require("../models/group");
 const User = require("../models/user");
-const Msg = require("../models/msg")
+const Msg = require("../models/msg");
 
 const createGroup = async (req, res) => {
   try {
-    // Function to generate a random 6-digit group code
+    // Function to generate a random 6-digit unique group code
     const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
 
     let groupCode;
@@ -17,16 +17,16 @@ const createGroup = async (req, res) => {
       isUnique = !existingGroup; // If no group with this code exists, it's unique
     }
 
+    // check admin exist or not
     const adminId = req.body.admin;
-    const admin = await User.findById(adminId); // Find the admin (creator of the group)
+    const admin = await User.findById(adminId);
     if (!admin) {
       return res.status(404).send("Admin not found");
     }
 
-    const userIds = req.body.participants; // Frontend should pass 'participants' array
-    const users = await User.find({ _id: { $in: userIds } });
-
     // Check if all participants exist
+    const userIds = req.body.participants;
+    const users = await User.find({ _id: { $in: userIds } });
     if (users.length !== userIds.length) {
       return res.status(400).send("Some participants not found");
     }
@@ -34,34 +34,36 @@ const createGroup = async (req, res) => {
     // Create a new group with the participants' IDs and the generated group code
     const group = new Group({
       ...req.body,
-      groupCode: groupCode, // Assign the generated group code
-      participant: userIds // Assign participants as an array of ObjectIds
+      groupCode: groupCode,
+      participant: userIds,
     });
 
-    // Add the group's ObjectId to the admin's group array
+    // Add group to the admin's group array
     admin.group.push(group._id);
-    await admin.save(); // Save the updated admin
 
-    // Save the group reference in each participant's group array
+    // Add group in each participant's group array
     for (const user of users) {
-      user.group.push(group._id); // Add group to each user's group array
-      await user.save(); // Save each participant after updating
+      user.group.push(group._id);
     }
-
-    // Save the group document in the database
-    await group.save();
 
     const io = req.app.get('socketio');
-    io.to(req.body.admin).emit('group-created', group); // Notify only the admin and notify participants
+    io.to(req.body.admin).emit('group-created', group); // Notify the admin
     let len = req.body.participants.length;
-    while(len--){
-      io.to(req.body.participants[len]).emit('group-created', group); 
+    while (len--) {
+      io.to(req.body.participants[len]).emit('group-created', group); // Notify participants
     }
 
-    res.status(201).send(group); // Respond with the created group
+    // save all instance
+    await admin.save();
+    for (const user of users) {
+      await user.save();
+    }
+    await group.save();
+
+    res.status(201).send(group);
   } catch (error) {
     console.error('Error creating group:', error);
-    res.status(400).send(error);
+    res.status(500).send(error);
   }
 };
 
@@ -70,24 +72,31 @@ const getGroups = async (req, res) => {
     const groups = await Group.find();
     res.send(groups);
   } catch (error) {
+    console.error('Error getting groups:', error);
     res.status(500).send(error);
   }
 };
 
 const getGroupById = async (req, res) => {
   try {
-    const group = await Group.findById(req.params.gid).populate('admin','username');   
-    if (!group) return res.status(404).send("Group not found");
+    // find group by id and populate admin for group info in frontend
+    const group = await Group.findById(req.params.gid).populate('admin', 'username');
+    if (!group)
+      return res.status(404).send("Group not found");
+
     res.send(group);
   } catch (error) {
+    console.error('Error getting group by id:', error);
     res.status(500).send(error);
   }
 };
 
 const getGroupByGroupCode = async (req, res) => {
   try {
-    const group = await Group.findOne({ groupCode : req.params.gid});   
-    if (!group) return res.status(404).send("Group not found");
+    const group = await Group.findOne({ groupCode: req.params.gcode });
+    if (!group)
+      return res.status(404).send("Group not found");
+
     res.send(group);
   } catch (error) {
     res.status(500).send(error);
@@ -96,10 +105,14 @@ const getGroupByGroupCode = async (req, res) => {
 
 const joinGroupByGroupCode = async (req, res) => {
   try {
-    const group = await Group.findOne({ groupCode: req.params.gid });
-    if (!group) return res.status(404).send("Group code is invalid.");
+    const group = await Group.findOne({ groupCode: req.params.gcode });
+    if (!group)
+      return res.status(404).send("Group code is invalid.");
 
+    // get new participant id
     const user = await User.findById(req.params.pid);
+
+    // check new participant is in groūp already
     if (user.group.includes(group._id))
       return res.status(404).send("User already in group");
 
@@ -109,6 +122,7 @@ const joinGroupByGroupCode = async (req, res) => {
     await user.save();
     res.send(group);
   } catch (error) {
+    console.error('Error to join the group by groupcode: ', error);
     res.status(500).send(error);
   }
 };
@@ -136,12 +150,21 @@ const deleteGroup = async (req, res) => {
     else {
       return res.status(400).send("Only Admin can delete the Group.");
     }
+
     await Group.deleteOne({ _id: groupId });
-    res.status(200).send("Group deleted successfully.")
+    res.status(200).send("Group deleted successfully.");
   }
   catch {
-    res.status(400).send("Failed to delete Group.")
+    console.log('Error to delete group');
+    res.status(400).send("Failed to delete Group.");
   }
 }
 
-module.exports = { createGroup, getGroups, getGroupById, getGroupByGroupCode, joinGroupByGroupCode, deleteGroup };
+module.exports = {
+  createGroup,
+  getGroups,
+  getGroupById,
+  getGroupByGroupCode,
+  joinGroupByGroupCode,
+  deleteGroup
+};
